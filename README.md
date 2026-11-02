@@ -1,118 +1,150 @@
 # BehaviorCI
 
-给 Agent 装上「行为回归 CI」——Prompt 是代码，Agent 行为就该有 CI。
+**给 Agent 装上行为回归 CI：Prompt 是代码，Agent 的行为就该有 CI。**
 
-**[→ 最新巡检报告（公开网页）](https://tudou718.github.io/behaviorci/)**
+[![BehaviorCI CI](https://github.com/tudou718/behaviorci/actions/workflows/behaviorci.yml/badge.svg)](https://github.com/tudou718/behaviorci/actions/workflows/behaviorci.yml)
+[![最新巡检报告](https://img.shields.io/badge/最新巡检报告-在线查看-0f766e)](https://tudou718.github.io/behaviorci/)
 
-## 它解决什么问题
+![终端演示：对比两份行为磁带](docs/demo.gif)
 
-Agent 的输出是不确定的：改一行 Prompt、换一个模型，行为可能在看不见的地方漂移。
-BehaviorCI 把 Agent 每次任务的完整行为录制下来（行为磁带 tape），
-在 Prompt / 模型 / 依赖变更后重放并做**语义级对比**，
-用 LLM-as-Judge 给出人话结论：等价、变好了，还是行为漂移了。
+## 痛点：改一行 Prompt，Agent 就悄悄变了
 
-## 项目结构（当前骨架）
+Agent 的输出是不确定的。改一句提示词、换一个模型版本、调一下温度——
+最终答案可能看起来还像样，但**中间过程已经变了**：少调了一次工具、跳过了检索、
+把两个事实拼错了。
+
+传统测试断言「输出等于某个字符串」，在 Agent 上根本用不了：同一个问题，
+两次回答的措辞必然不同。于是大家只能靠人肉点一遍——直到某天线上出问题。
+
+**问题不在「结果对不对」，而在「行为有没有漂移」。**
+
+## 它怎么解决：录 → 放 → 比 → 判
+
+1. **录**：Agent 每做一步（调工具、拿结果、说话）都记一笔，存成一份行为磁带
+2. **放**：改了 Prompt 或模型之后，用同一个任务再跑一遍，得到第二份磁带
+3. **比**：先做结构对比（步骤数、工具序列、有没有交付），再做字段级差异清点
+4. **判**：把两份磁带交给 LLM 裁判，它给出三选一结论——**等价 / 变好 / 漂移**，并说明理由
+5. **出报告**：终端结论 + Markdown/JSON 报告 + 一页公开网页
+
+裁判不是判一次就完：同一个对比会跑 **3 次取多数**，票型（比如 3:0 或 2:1）一并写进报告——
+分歧本身就是「这题该由人来拍板」的信号。
+
+## 快速上手
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env          # 填入 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL
+
+# 1. 录一份基线磁带
+python main.py record --label baseline
+
+# 2. 改完 Prompt 后，用同一任务再跑两次
+python main.py replay --runs 2 --labels baseline,new-prompt
+
+# 3. 对比 + 裁判 + 报告（报告写到 reports/）
+python main.py compare tapes/<基线>.json tapes/<候选>.json
+```
+
+`compare` 默认裁判跑 3 次；想省钱用 `--judge-runs 1`，只查结构用 `--no-judge`，
+判定漂移时让命令以非零退出码失败（给 CI 用）加 `--fail-on-drift`。
+
+## 架构
+
+```mermaid
+flowchart LR
+    T["任务定义<br/>tasks/*.json"] --> A["record<br/>运行 Agent"]
+    T --> B["replay<br/>再次运行"]
+    A --> TA["基线磁带<br/>tapes/*.json"]
+    B --> TB["候选磁带<br/>tapes/*.json"]
+    TA --> S["结构对比<br/>步骤数 / 工具序列 / 交付非空"]
+    TB --> S
+    S --> D["内容清点<br/>哪些步骤变了 · 谁是源头"]
+    D --> J["LLM-as-Judge<br/>跑 3 次取多数"]
+    J --> R["报告<br/>终端 / Markdown / JSON / 网页"]
+```
+
+三个设计决定，决定了它好不好用：
+
+| 决定 | 为什么 |
+|---|---|
+| 磁带记「每步的输入输出」，不只记最终答案 | 只看答案分不清「等价重写」和「行为退化」 |
+| 结构对比与语义裁决分开 | 骨架塌了不用花钱问模型；骨架没事才需要读内容 |
+| 裁判多次投票、保留分歧 | 单次裁决等于抽签，票型才是可信度 |
+
+## 案例数据
+
+以下都是真实运行，不是编的。
+
+**示例 Agent（daily-brief：关键词 → 模拟搜索 → 200 字摘要）**
+
+- 6 份磁带、2 个任务、18 步记录
+- 6 次完整对比，结构检查全部通过
+- 裁判每次 3 票，6 次结论均为「等价」——模型的措辞抖动没有被误报成漂移
+
+**裁判校准**：用一份故意跑题的候选磁带测试，裁判稳定判出「漂移」，并指出具体依据
+（「搜索结果中无此信息，属无依据编造」）。**该报的时候会报，才是可信的裁判。**
+
+**真实项目：智研搜**
+
+[智研搜](https://github.com/tudou718/deepsearch-agents-learning) 是基于
+LangGraph/deepagents 的多智能体研搜平台。接入只做了三件事：在主智能体流式循环里记录
+每条消息、对易变的会话 id 脱敏、用一个脚本跑两轮生成磁带。结果：
+
+```
+步骤数   ✓ 一致（3 = 3）
+工具序列 ✓ 一致（tool:generate_markdown → tool_result → model_message）
+最终交付 ✓ 一致（99 字 / 99 字）
+裁判：等价 3:0
+```
+
+接入过程还倒逼出两个通用性修复：不同 Agent 的交付物字段名不同（`summary` vs `final`）、
+每次运行必变的 session id 会污染对比。**拿真实项目吃狗粮，才会暴露假数据永远发现不了的问题。**
+
+## 自动巡检与公开报告
+
+[`.github/workflows/behaviorci.yml`](.github/workflows/behaviorci.yml) 会在手动触发、
+或任务定义 / 源码 / 基线磁带变更时自动运行：录一份候选磁带 → 与仓库里最新的基线对比 →
+报告写进运行摘要和产物，同时发布到 [GitHub Pages](https://tudou718.github.io/behaviorci/)。
+
+三个模型配置放在仓库 Secrets 里（`LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`），
+`.env` 不进 Git。
+
+## 项目结构
 
 ```
 behaviorci/
-├── main.py       # 统一入口：record / replay / compare
-├── src/          # demo_agent / recorder / replay / diff / judge / report / llm / tape
-├── tasks/        # 任务定义（JSON）
-├── tapes/        # 行为磁带（JSON，进 Git 作为基线）
-├── reports/      # 漂移报告
-├── .env          # 环境配置（LLM_API_KEY 等，不进 Git）
-└── requirements.txt
+├── main.py                 # 统一入口：record / replay / compare
+├── src/
+│   ├── demo_agent.py       # 被测试的 Agent（主题 → 关键词 → 搜索 → 摘要）
+│   ├── recorder.py         # 行为磁带记录器
+│   ├── replay.py           # 重放与并排查看
+│   ├── diff.py             # 结构对比 + 内容清点
+│   ├── judge.py            # LLM-as-Judge 与多次投票
+│   ├── report.py           # Markdown / JSON 报告
+│   ├── pages.py            # 静态网页渲染
+│   ├── llm.py              # 模型调用（配置、JSON 解析）
+│   └── tape.py             # 磁带的读与字段级比较
+├── tasks/                  # 任务定义
+├── tapes/                  # 行为磁带（基线，进 Git）
+├── reports/                # 生成的报告（不进 Git）
+└── docs/demo.gif           # 演示动图（由真实输出渲染）
 ```
 
-## 环境
+## 离开演示 Agent 也能用
 
-- Python：`/Users/xinpingyang/.workbuddy/binaries/python/envs/default/bin/python`（已装 openai / python-dotenv）
-- 配置：`.env` 里的 `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL`
+BehaviorCI 不绑定任何框架：只要能按「步骤 + 输入 + 输出」记录一次运行，
+就能生成磁带。智研搜的接入层（`app/observability/behaviorci.py`）只有百来行，
+复用了同一套 Recorder 和磁带格式。
 
-## 一条命令跑完
+接入自己的项目：复制一份 `src/recorder.py`，在 Agent 的主循环里每完成一步调一次
+`recorder.log(name, input, output)`，最后 `finish()`。剩下的对比、裁判、报告都现成。
 
-BehaviorCI 的流程是「录 → 放 → 比 → 报告」：先录一份基线磁带；改 Prompt 或换模型后，
-用同样的任务重放一次；结构对比确认骨架没塌；最后让裁判读内容，给出「等价 / 变好 / 漂移」
-的结论。报告写到 `reports/`，一份 Markdown 给人看，一份 JSON 给 CI 用。
+## 局限
 
-```bash
-python main.py record                                   # 录基线（跑一次任务）
-python main.py replay --runs 2 --labels baseline,new    # 重放两次，并排看差异
-python main.py compare tapes/<基线>.json tapes/<候选>.json   # 对比 + 裁判 + 出报告
-```
+- 示例 Agent 的搜索步骤是固定假数据（真实接入见智研搜案例）
+- 裁判结论依赖模型能力；对模棱两可的改动，票型会分裂，此时应以人工判断为准
+- 磁带记录工具层面的输入输出，不记录模型内部的推理过程
 
-`compare` 默认裁判跑 3 次取多数；判定为漂移时想让它以非零退出码失败，加 `--fail-on-drift`。
+## License
 
-## 分步工具（调试或只跑某一段时用）
-
-```bash
-# 主题 → 3 个关键词 → 模拟搜索 → 200 字摘要（默认录磁带）
-python src/demo_agent.py "AI Agent 最新进展"
-
-# 同一次运行，输出结构化结果（含磁带路径）
-python src/demo_agent.py "AI Agent 最新进展" --json
-
-# 只跑不录，不生成磁带
-python src/demo_agent.py "AI Agent 最新进展" --no-record
-
-# 同一任务跑两次，生成 v1/v2 两份磁带并并排展示
-python src/replay.py
-python src/replay.py --runs 3 --labels baseline,new-prompt,new-prompt-2
-
-# 只并排查看两份已有磁带（不重跑、不花 token）
-python src/replay.py --compare tapes/a.json tapes/b.json
-
-# 结构对比 + 裁判（默认裁判跑 3 次取多数）
-python src/diff.py tapes/a.json tapes/b.json
-python src/diff.py tapes/a.json tapes/b.json --judge-runs 5
-python src/diff.py tapes/a.json tapes/b.json --no-judge   # 只看结构
-python src/diff.py tapes/a.json tapes/b.json --json
-
-# 想看裁判自相矛盾长什么样（温度默认 0，调高后分歧会变多，仅用于观察）
-JUDGE_TEMPERATURE=0.9 python src/diff.py tapes/a.json tapes/b.json
-```
-
-每跑一次，`tapes/` 下会多一份 `daily-brief-YYYYMMDD-HHMMSS.json`，
-记录任务、模型、每一步的输入输出和耗时。
-
-> 解释器路径见上方「环境」一节。搜索这一步目前是**固定的假数据**，
-> 为的是让后续重放时的差异只来自模型本身。
-
-## 案例：给「智研搜」做行为回归
-
-[智研搜](https://github.com/tudou718/deepsearch-agents-learning) 是一个基于
-LangGraph/deepagents 的多智能体研搜平台：主智能体调度网络搜索、数据库查询、
-知识库检索三个子智能体，最后生成 Markdown 报告。
-
-接入只做了三件事：在主智能体的流式执行循环里记录每条消息（工具调用、工具返回、
-模型输出），给易变的会话 id 做脱敏，再用一个脚本跑两轮生成磁带。
-两次运行的结果是：结构 3/3 一致（步骤数、工具序列、交付非空），裁判 3:0 判「等价」——
-差异只是一处同义措辞，不属于漂移。
-
-这次接入还倒逼出两个通用性问题：不同 Agent 的交付物字段名不同（`summary` vs `final`），
-以及每次运行必变的 session id 会污染对比。两者都已在 `tape.py` 和适配层里修掉——
-**这正是「用工具管自己的真实项目」的意义：假数据永远不会暴露这些问题。**
-
-## 自动巡检（GitHub Actions）
-
-`.github/workflows/behaviorci.yml`：手动点按钮，或改动了任务定义 / 源码 / 基线磁带后自动触发。
-每次运行会录一份候选磁带，与仓库里最新的基线磁带对比，把报告写进运行摘要并可下载，
-同时渲染成一页静态 HTML 发布到 GitHub Pages。
-
-需要在仓库 Settings → Secrets and variables → Actions 配置三个变量：
-`LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`（本机 `.env` 不会进仓库）。
-
-## 路线图
-
-- [x] D1 骨架与配置
-- [x] D2 demo Agent（搜索 → 摘要）
-- [x] D3 行为磁带 recorder
-- [x] D4 replay（同一任务多次重放，观察不确定性）
-- [x] D5 diff v1（结构对比：步骤数 / 工具序列 / 最终输出非空）
-- [x] D6 Judge（LLM-as-Judge：等价 / 变好 / 漂移）
-- [x] D7 分布校验（裁判跑 3 次取多数，记录分歧）
-- [x] D8 CLI 闭环（main.py：record / replay / compare + 报告）
-- [x] D9 GitHub Actions（手动/变更触发，报告进运行摘要 + 产物）
-- [x] D10 Pages 报告（https://tudou718.github.io/behaviorci/）
-- [x] D11 接入智研搜（真实项目行为回归）
-- [ ] D12–13 README / 演示 / v0.1 发布
+MIT
