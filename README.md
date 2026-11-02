@@ -76,6 +76,14 @@ JUDGE_TEMPERATURE=0.9 python src/diff.py tapes/a.json tapes/b.json
 > 解释器路径见上方「环境」一节。搜索这一步目前是**固定的假数据**，
 > 为的是让后续重放时的差异只来自模型本身。
 
+## 自动巡检（GitHub Actions）
+
+`.github/workflows/behaviorci.yml`：手动点按钮，或改动了任务定义 / 源码 / 基线磁带后自动触发。
+每次运行会录一份候选磁带，与仓库里最新的基线磁带对比，把报告写进运行摘要并可下载。
+
+需要在仓库 Settings → Secrets and variables → Actions 配置三个变量：
+`LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`（本机 `.env` 不会进仓库）。
+
 ## 路线图
 
 - [x] D1 骨架与配置
@@ -86,5 +94,6 @@ JUDGE_TEMPERATURE=0.9 python src/diff.py tapes/a.json tapes/b.json
 - [x] D6 Judge（LLM-as-Judge：等价 / 变好 / 漂移）
 - [x] D7 分布校验（裁判跑 3 次取多数，记录分歧）
 - [x] D8 CLI 闭环（main.py：record / replay / compare + 报告）
-- [ ] D9–10 GitHub Action + Pages 报告
+- [ ] D9 GitHub Actions（工作流已就位，待配置 Secrets 后首次运行）
+- [ ] D10 Pages 报告
 - [ ] D11–13 接入真实项目（智研搜）+ README + v0.1 发布

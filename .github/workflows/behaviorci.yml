@@ -1,0 +1,108 @@
+name: BehaviorCI
+
+# 什么时候巡检：
+#   1. 手动点按钮（workflow_dispatch）
+#   2. 改了任务定义、源码或基线磁带后自动跑（push 到 main）
+on:
+  workflow_dispatch:
+    inputs:
+      fail_on_drift:
+        description: "判定为漂移时让本次运行失败"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "tasks/**"
+      - "src/**"
+      - "main.py"
+      - "tapes/**"
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    env:
+      # 这三个来自仓库 Settings → Secrets and variables → Actions
+      LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_MODEL: ${{ secrets.LLM_MODEL }}
+      JUDGE_RUNS: "3"
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 装依赖
+        run: pip install -r requirements.txt
+
+      - name: 检查密钥是否配置
+        run: |
+          if [ -z "$LLM_API_KEY" ] || [ -z "$LLM_BASE_URL" ] || [ -z "$LLM_MODEL" ]; then
+            echo "::error::缺少模型配置。请到 Settings → Secrets and variables → Actions 配置 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL。"
+            exit 1
+          fi
+
+      - name: 录制候选磁带
+        run: python main.py record --label "ci-${{ github.run_number }}"
+
+      - name: 选基线磁带
+        id: pick
+        run: |
+          # 基线 = 仓库里“提交过”的磁带中最新的那份（排除本次 CI 生成的）
+          BASE=$(python - <<'PY'
+          import glob, json
+          tapes = []
+          for path in glob.glob("tapes/*.json"):
+              tape = json.load(open(path, encoding="utf-8"))
+              variant = str(tape["meta"].get("variant") or "")
+              if variant.startswith("ci-"):
+                  continue
+              tapes.append((tape["meta"]["started_at"], path))
+          tapes.sort()
+          print(tapes[-1][1] if tapes else "")
+          PY
+          )
+          if [ -z "$BASE" ]; then
+            echo "::error::tapes/ 里没有可用的基线磁带，请先 commit 一份。"
+            exit 1
+          fi
+          echo "baseline=$BASE" >> "$GITHUB_OUTPUT"
+          echo "基线磁带：$BASE"
+
+      - name: 对比与裁决
+        run: |
+          CAND=$(ls -t tapes/*-ci-*.json | head -1)
+          echo "候选磁带：$CAND"
+          python main.py compare \
+            "${{ steps.pick.outputs.baseline }}" \
+            "$CAND" \
+            --judge-runs "$JUDGE_RUNS" \
+            ${{ inputs.fail_on_drift && '--fail-on-drift' || '' }}
+
+      - name: 报告写进运行摘要
+        if: always()
+        run: |
+          if ls reports/*.md >/dev/null 2>&1; then
+            {
+              echo "## BehaviorCI 巡检报告"
+              echo ""
+              cat $(ls -t reports/*.md | head -1)
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: 上传报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: behaviorci-report-${{ github.run_number }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 30
