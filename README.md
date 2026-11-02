@@ -94,6 +94,6 @@ JUDGE_TEMPERATURE=0.9 python src/diff.py tapes/a.json tapes/b.json
 - [x] D6 Judge（LLM-as-Judge：等价 / 变好 / 漂移）
 - [x] D7 分布校验（裁判跑 3 次取多数，记录分歧）
 - [x] D8 CLI 闭环（main.py：record / replay / compare + 报告）
-- [ ] D9 GitHub Actions（工作流已就位，待配置 Secrets 后首次运行）
+- [x] D9 GitHub Actions（手动/变更触发，报告进运行摘要 + 产物）
 - [ ] D10 Pages 报告
 - [ ] D11–13 接入真实项目（智研搜）+ README + v0.1 发布
