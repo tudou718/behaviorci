@@ -5,6 +5,8 @@
 [![BehaviorCI CI](https://github.com/tudou718/behaviorci/actions/workflows/behaviorci.yml/badge.svg)](https://github.com/tudou718/behaviorci/actions/workflows/behaviorci.yml)
 [![最新巡检报告](https://img.shields.io/badge/最新巡检报告-在线查看-0f766e)](https://tudou718.github.io/behaviorci/)
 
+**第一次用？从 [接入指南](docs/integration.md) 开始（[网页版，手机也能看](https://tudou718.github.io/behaviorci/guide.html)）。**
+
 ![终端演示：对比两份行为磁带](docs/demo.gif)
 
 ## 痛点：改一行 Prompt，Agent 就悄悄变了
@@ -157,6 +159,11 @@ BehaviorCI 不绑定任何框架：只要能按「步骤 + 输入 + 输出」记
 - 示例 Agent 的搜索步骤是固定假数据（真实接入见智研搜案例）
 - 裁判结论依赖模型能力；对模棱两可的改动，票型会分裂，此时应以人工判断为准
 - 磁带记录工具层面的输入输出，不记录模型内部的推理过程
+
+## 文档
+
+- [接入指南](docs/integration.md) — 把 BehaviorCI 接到自己的 Agent 上：三步接入、最小示例、脱敏写法、常见问题（[网页版](https://tudou718.github.io/behaviorci/guide.html)）
+- [巡检工作流](.github/workflows/behaviorci.yml) — 自动录制、对比、发布报告
 
 ## License
 

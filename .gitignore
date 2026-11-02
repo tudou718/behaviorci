@@ -12,3 +12,6 @@ reports/*
 
 # 本地预览产物
 _site/
+
+# 指南页是构建产物
+docs/integration.html

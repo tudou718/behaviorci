@@ -125,6 +125,10 @@ jobs:
             printf '<!doctype html><meta charset="utf-8"><h1>本次巡检未生成报告</h1>' > _site/index.html
           fi
 
+      - name: 生成接入指南页
+        if: always()
+        run: python src/guide.py --out _site/guide.html
+
       - name: 配置 Pages
         if: always()
         uses: actions/configure-pages@v5
