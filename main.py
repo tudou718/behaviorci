@@ -101,9 +101,16 @@ def cmd_compare(args: argparse.Namespace) -> int:
         diff.print_report(report)
 
     if not args.no_save:
-        md_path, json_path = save(report, tape_a, tape_b)
-        print(f"\n报告已保存：{_rel(md_path)}")
-        print(f"            {_rel(json_path)}")
+        md_path, json_path, html_path = save(report, tape_a, tape_b)
+        print(f"\n报告已保存：")
+        print(f"  网页   {_rel(html_path)}")
+        print(f"  Markdown {_rel(md_path)}")
+        print(f"  JSON   {_rel(json_path)}")
+        if args.open:
+            import webbrowser
+
+            webbrowser.open(html_path.resolve().as_uri())
+            print(f"  已在浏览器中打开")
 
     if args.fail_on_drift and report["verdict"].get("verdict") == "漂移":
         return 1
@@ -141,6 +148,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_compare.add_argument("--no-judge", action="store_true", help="只做结构对比")
     p_compare.add_argument("--no-save", action="store_true", help="不写 reports/")
     p_compare.add_argument("--json", action="store_true", help="只输出 JSON")
+    p_compare.add_argument(
+        "--open",
+        action="store_true",
+        help="生成报告后用浏览器打开网页版",
+    )
     p_compare.add_argument(
         "--fail-on-drift",
         action="store_true",

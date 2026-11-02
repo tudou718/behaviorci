@@ -23,8 +23,10 @@ from datetime import datetime
 from pathlib import Path
 
 try:
+    from .pages import render_html
     from .tape import final_output_text
 except ImportError:
+    from pages import render_html
     from tape import final_output_text
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -159,8 +161,8 @@ def save(
     tape_a: dict,
     tape_b: dict,
     out_dir: Path | str | None = None,
-) -> tuple[Path, Path]:
-    """把报告写到 reports/，返回 (markdown 路径, json 路径)。"""
+) -> tuple[Path, Path, Path]:
+    """把报告写到 reports/，返回 (markdown, json, html) 三个路径。"""
     out = Path(out_dir) if out_dir else ROOT / "reports"
     out.mkdir(parents=True, exist_ok=True)
 
@@ -169,6 +171,7 @@ def save(
 
     md_path = out / f"{stem}.md"
     json_path = out / f"{stem}.json"
+    html_path = out / f"{stem}.html"
 
     md_path.write_text(render_markdown(report, tape_a, tape_b), encoding="utf-8")
     # 把两份磁带也塞进 payload：这样报告是自包含的，
@@ -184,4 +187,6 @@ def save(
     json_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    return md_path, json_path
+    # 同一份 payload 再渲染一版网页：终端是过程，网页才是给人看的产物
+    html_path.write_text(render_html(payload), encoding="utf-8")
+    return md_path, json_path, html_path
