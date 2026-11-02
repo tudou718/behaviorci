@@ -22,6 +22,11 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+try:
+    from .tape import final_output_text
+except ImportError:
+    from tape import final_output_text
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -107,8 +112,8 @@ def render_markdown(report: dict, tape_a: dict, tape_b: dict) -> str:
             lines.append("- 最终交付物（summary）也变了")
     lines.append("")
 
-    base_text = (tape_a.get("output", {}) or {}).get("summary", "")
-    cand_text = (tape_b.get("output", {}) or {}).get("summary", "")
+    base_text = final_output_text(tape_a)
+    cand_text = final_output_text(tape_b)
     if base_text or cand_text:
         lines.append("### 最终交付物对比")
         lines.append("")

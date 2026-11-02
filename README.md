@@ -78,6 +78,21 @@ JUDGE_TEMPERATURE=0.9 python src/diff.py tapes/a.json tapes/b.json
 > 解释器路径见上方「环境」一节。搜索这一步目前是**固定的假数据**，
 > 为的是让后续重放时的差异只来自模型本身。
 
+## 案例：给「智研搜」做行为回归
+
+[智研搜](https://github.com/tudou718/deepsearch-agents-learning) 是一个基于
+LangGraph/deepagents 的多智能体研搜平台：主智能体调度网络搜索、数据库查询、
+知识库检索三个子智能体，最后生成 Markdown 报告。
+
+接入只做了三件事：在主智能体的流式执行循环里记录每条消息（工具调用、工具返回、
+模型输出），给易变的会话 id 做脱敏，再用一个脚本跑两轮生成磁带。
+两次运行的结果是：结构 3/3 一致（步骤数、工具序列、交付非空），裁判 3:0 判「等价」——
+差异只是一处同义措辞，不属于漂移。
+
+这次接入还倒逼出两个通用性问题：不同 Agent 的交付物字段名不同（`summary` vs `final`），
+以及每次运行必变的 session id 会污染对比。两者都已在 `tape.py` 和适配层里修掉——
+**这正是「用工具管自己的真实项目」的意义：假数据永远不会暴露这些问题。**
+
 ## 自动巡检（GitHub Actions）
 
 `.github/workflows/behaviorci.yml`：手动点按钮，或改动了任务定义 / 源码 / 基线磁带后自动触发。
@@ -99,4 +114,5 @@ JUDGE_TEMPERATURE=0.9 python src/diff.py tapes/a.json tapes/b.json
 - [x] D8 CLI 闭环（main.py：record / replay / compare + 报告）
 - [x] D9 GitHub Actions（手动/变更触发，报告进运行摘要 + 产物）
 - [x] D10 Pages 报告（https://tudou718.github.io/behaviorci/）
-- [ ] D11–13 接入真实项目（智研搜）+ README + v0.1 发布
+- [x] D11 接入智研搜（真实项目行为回归）
+- [ ] D12–13 README / 演示 / v0.1 发布

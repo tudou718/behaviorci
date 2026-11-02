@@ -32,10 +32,10 @@ from pathlib import Path
 
 try:
     from . import judge as judge_mod
-    from .tape import load_tape, walk_diff
+    from .tape import final_output_text, load_tape, walk_diff
 except ImportError:
     import judge as judge_mod
-    from tape import load_tape, walk_diff
+    from tape import final_output_text, load_tape, walk_diff
 
 # ---------------------------------------------------------------------------
 # 三项结构对比
@@ -69,18 +69,13 @@ def check_tool_sequence(tape_a: dict, tape_b: dict) -> dict:
     }
 
 
-def _final_output_text(tape: dict) -> str:
-    """从磁带的 output 里取最终交付物（这里就是 summary）。"""
-    return str(tape.get("output", {}).get("summary", "") or "")
-
-
 def check_final_output(tape_a: dict, tape_b: dict) -> dict:
     """最终输出都有东西吗？
 
     注意这里只查「有没有」，不查「一不一样」——一样不一样是内容层的事，
     骨架层只看交没交货。
     """
-    a, b = _final_output_text(tape_a), _final_output_text(tape_b)
+    a, b = final_output_text(tape_a), final_output_text(tape_b)
     both = bool(a.strip()) and bool(b.strip())
     return {
         "name": "final_output_nonempty",
@@ -235,7 +230,7 @@ def print_report(report: dict) -> None:
             tag = "← 源头" if item["name"] in root_names else "（输入来自上游，输出跟着变）"
             print(f"  #{item['index']} {item['label']}：输出 {item['diff_count']} 处不同  {tag}")
         if content["final_output_changed"]:
-            print("  最终交付物（summary）也变了。")
+            print("  最终交付物也变了。")
 
     print("\n注意：结构一致 ≠ 行为等价。骨架一模一样、内容却变了，是最常见的情况——")
     print("      这正是笨办法的天花板，所以要请裁判来读内容。\n")

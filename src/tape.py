@@ -57,3 +57,20 @@ def walk_diff(a, b, path: str = "") -> list[tuple[str, object, object]]:
     if a != b:
         diffs.append((path, a, b))
     return diffs
+
+def final_output_text(tape: dict) -> str:
+    """取出磁带的最终交付文本。
+
+    不同 Agent 的交付物字段名不一样：demo 用 summary，智研搜用 final。
+    所以按常见字段依次找，最后兜底到任意非空字符串——结构检查只关心
+    「有没有交货」，不该因为字段名不同就误报。
+    """
+    output = tape.get("output") or {}
+    for key in ("summary", "final", "answer", "text", "result"):
+        value = output.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    for value in output.values():
+        if isinstance(value, str) and value.strip():
+            return value
+    return ""

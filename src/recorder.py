@@ -43,6 +43,7 @@ class Recorder:
         agent: str = "demo_agent",
         tapes_dir: Path | str | None = None,
         variant: str | None = None,
+        model: str | None = None,
     ) -> None:
         self.task_name = task_name
         self.task_input = task_input or {}
@@ -57,8 +58,9 @@ class Recorder:
         self._start = time.perf_counter()
         self._last = self._start
 
-        # 记下用的是什么模型：以后行为变了，先看是不是模型换了
-        self.model = os.getenv("LLM_MODEL", "")
+        # 记下用的是什么模型：以后行为变了，先看是不是模型换了。
+        # 接入别的项目时可以显式传（它们的变量名不一定叫 LLM_MODEL）。
+        self.model = model or os.getenv("LLM_MODEL", "")
 
     # -- 记录 ---------------------------------------------------------------
 
