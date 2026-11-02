@@ -24,6 +24,14 @@ permissions:
 jobs:
   review:
     runs-on: ubuntu-latest
+    # Pages 发布需要这三个权限：读代码、写 Pages、用 OIDC 换临时令牌
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     env:
       # 这三个来自仓库 Settings → Secrets and variables → Actions
       LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
@@ -106,3 +114,27 @@ jobs:
           path: reports/
           if-no-files-found: warn
           retention-days: 30
+
+      - name: 生成网页
+        if: always()
+        run: |
+          if ls reports/*.json >/dev/null 2>&1; then
+            python src/pages.py --latest --out _site
+          else
+            mkdir -p _site
+            printf '<!doctype html><meta charset="utf-8"><h1>本次巡检未生成报告</h1>' > _site/index.html
+          fi
+
+      - name: 配置 Pages
+        if: always()
+        uses: actions/configure-pages@v5
+
+      - name: 上传网页
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: 发布到 Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

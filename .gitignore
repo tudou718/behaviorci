@@ -9,3 +9,6 @@ __pycache__/
 # 报告是产物，由 CI 生成，不进 Git
 reports/*
 !reports/.gitkeep
+
+# 本地预览产物
+_site/

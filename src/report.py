@@ -166,10 +166,14 @@ def save(
     json_path = out / f"{stem}.json"
 
     md_path.write_text(render_markdown(report, tape_a, tape_b), encoding="utf-8")
+    # 把两份磁带也塞进 payload：这样报告是自包含的，
+    # 网页渲染、事后复查都不需要再去找原始磁带文件。
     payload = {
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "baseline_tape": tape_a["meta"]["run_id"],
         "candidate_tape": tape_b["meta"]["run_id"],
+        "baseline": tape_a,
+        "candidate": tape_b,
         "report": report,
     }
     json_path.write_text(

@@ -2,6 +2,8 @@
 
 给 Agent 装上「行为回归 CI」——Prompt 是代码，Agent 行为就该有 CI。
 
+**[→ 最新巡检报告（公开网页）](https://tudou718.github.io/behaviorci/)**
+
 ## 它解决什么问题
 
 Agent 的输出是不确定的：改一行 Prompt、换一个模型，行为可能在看不见的地方漂移。
