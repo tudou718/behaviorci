@@ -64,14 +64,28 @@ jobs:
       - name: 选基线磁带
         id: pick
         run: |
-          # 基线 = 仓库里“提交过”的磁带中最新的那份（排除本次 CI 生成的）
-          BASE=$(python - <<'PY'
-          import glob, json
+          # 候选 = 本次 CI 刚录的那份
+          CAND=$(ls -t tapes/*-ci-*.json | head -1)
+          if [ -z "$CAND" ]; then
+            echo "::error::没找到本次 CI 录制的候选磁带"
+            exit 1
+          fi
+
+          # 基线 = 与候选「同一任务名」的已提交磁带中最新的那份。
+          # 必须按任务名过滤：仓库里可能同时有多个 Agent 的磁带
+          # （daily-brief / deepsearch …），拿错任务对比会直接报错。
+          BASE=$(python - "$CAND" <<'PY'
+          import glob, json, sys
+          candidate = json.load(open(sys.argv[1], encoding="utf-8"))
+          task = candidate["task"]["name"]
           tapes = []
           for path in glob.glob("tapes/*.json"):
+              if path == sys.argv[1]:
+                  continue
               tape = json.load(open(path, encoding="utf-8"))
-              variant = str(tape["meta"].get("variant") or "")
-              if variant.startswith("ci-"):
+              if tape["task"]["name"] != task:
+                  continue
+              if str(tape["meta"].get("variant") or "").startswith("ci-"):
                   continue
               tapes.append((tape["meta"]["started_at"], path))
           tapes.sort()
@@ -79,19 +93,19 @@ jobs:
           PY
           )
           if [ -z "$BASE" ]; then
-            echo "::error::tapes/ 里没有可用的基线磁带，请先 commit 一份。"
+            echo "::error::tapes/ 里没有任务 $CAND 可用的基线磁带，请先 commit 一份。"
             exit 1
           fi
+          echo "candidate=$CAND" >> "$GITHUB_OUTPUT"
           echo "baseline=$BASE" >> "$GITHUB_OUTPUT"
+          echo "候选磁带：$CAND"
           echo "基线磁带：$BASE"
 
       - name: 对比与裁决
         run: |
-          CAND=$(ls -t tapes/*-ci-*.json | head -1)
-          echo "候选磁带：$CAND"
           python main.py compare \
             "${{ steps.pick.outputs.baseline }}" \
-            "$CAND" \
+            "${{ steps.pick.outputs.candidate }}" \
             --judge-runs "$JUDGE_RUNS" \
             ${{ inputs.fail_on_drift && '--fail-on-drift' || '' }}
 
