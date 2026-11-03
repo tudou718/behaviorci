@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -23,6 +24,10 @@ from openai import OpenAI
 
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
+
+# 用量流水：每次调用追加一行 JSON，给 stats 统计 token / 费用用。
+# 放在 reports/ 下（该目录不进 Git），一行一条便于追加和事后 grep。
+USAGE_LOG = ROOT / "reports" / "usage.jsonl"
 
 
 def env(name: str) -> str:
@@ -50,6 +55,7 @@ def ask(
     temperature: float = 0.3,
     max_tokens: int = 2000,
     cache_key: str | None = None,
+    purpose: str = "generic",
 ) -> str:
     """一次最普通的对话调用，返回模型说的话（已去掉首尾空白）。
 
@@ -72,6 +78,7 @@ def ask(
         max_tokens=max_tokens,
         **extra,
     )
+    _log_usage(response, purpose)
     choice = response.choices[0]
     content = (choice.message.content or "").strip()
     if not content:
@@ -80,6 +87,30 @@ def ask(
             "多半是推理过程把 max_tokens 吃光了，调大该值再试。"
         )
     return content
+
+
+def _log_usage(response, purpose: str) -> None:
+    """把这一次调用的 token 用量追加到流水里。
+
+    计量失败不能影响主流程——统计是附加价值，不是业务依赖。
+    """
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return
+    record = {
+        "at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "model": os.getenv("LLM_MODEL", ""),
+        "purpose": purpose,
+        "prompt_tokens": getattr(usage, "prompt_tokens", 0) or 0,
+        "completion_tokens": getattr(usage, "completion_tokens", 0) or 0,
+        "total_tokens": getattr(usage, "total_tokens", 0) or 0,
+    }
+    try:
+        USAGE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with USAGE_LOG.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
 
 
 def parse_json(text: str) -> dict:
@@ -112,6 +143,7 @@ if __name__ == "__main__":
             temperature=0,
             max_tokens=500,
             cache_key=f"probe-{uuid.uuid4().hex[:8]}",
+            purpose="probe",
         )
         print(f"✓ 连通正常（模型 {env('LLM_MODEL')}）：{reply[:50]}")
     except Exception as exc:

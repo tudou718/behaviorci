@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import demo_agent  # noqa: E402
 import diff  # noqa: E402
 import replay  # noqa: E402
+import stats  # noqa: E402
 from report import save  # noqa: E402
 
 DEFAULT_TASK = ROOT / "tasks" / "daily_brief.json"
@@ -118,6 +119,19 @@ def cmd_compare(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# stats：实测统计
+# ---------------------------------------------------------------------------
+
+def cmd_stats(args: argparse.Namespace) -> int:
+    data = stats.collect()
+    if args.json:
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+    else:
+        print(stats.render(data))
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # 入口
 # ---------------------------------------------------------------------------
 
@@ -159,6 +173,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="判定为漂移时以退出码 1 结束（CI 用）",
     )
     p_compare.set_defaults(func=cmd_compare)
+
+    p_stats = sub.add_parser("stats", help="统计磁带、对比结论与 token 用量")
+    p_stats.add_argument("--json", action="store_true", help="输出 JSON")
+    p_stats.set_defaults(func=cmd_stats)
 
     return parser
 

@@ -64,7 +64,14 @@ def generate_keywords(topic: str, cache_key: str | None = None) -> list[str]:
 - 只输出 JSON，格式严格如下：
 {{"keywords": ["关键词1", "关键词2", "关键词3"]}}"""
 
-    raw = ask(KEYWORD_SYSTEM, prompt, temperature=0.2, max_tokens=2000, cache_key=cache_key)
+    raw = ask(
+        KEYWORD_SYSTEM,
+        prompt,
+        temperature=0.2,
+        max_tokens=2000,
+        cache_key=cache_key,
+        purpose="agent:keywords",
+    )
     data = parse_json(raw)
     keywords = [str(k).strip() for k in data.get("keywords", []) if str(k).strip()]
     if len(keywords) < 3:
@@ -143,7 +150,14 @@ def write_summary(
 2. 只使用上面资料里出现的信息，不要补充资料之外的事实
 3. 结尾用一句话指出：这个方向目前最没解决好的问题是什么"""
 
-    return ask(SUMMARY_SYSTEM, prompt, temperature=0.7, max_tokens=4000, cache_key=cache_key)
+    return ask(
+        SUMMARY_SYSTEM,
+        prompt,
+        temperature=0.7,
+        max_tokens=4000,
+        cache_key=cache_key,
+        purpose="agent:summary",
+    )
 
 
 # ---------------------------------------------------------------------------

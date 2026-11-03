@@ -185,6 +185,7 @@ def judge(
             temperature=_judge_temperature(),
             max_tokens=4000,
             cache_key=cache_key,
+            purpose="judge",
         )
 
         try:
