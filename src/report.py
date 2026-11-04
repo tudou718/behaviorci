@@ -23,9 +23,11 @@ from datetime import datetime
 from pathlib import Path
 
 try:
+    from . import provenance
     from .pages import render_html
     from .tape import final_output_text
 except ImportError:
+    import provenance
     from pages import render_html
     from tape import final_output_text
 
@@ -97,6 +99,18 @@ def render_markdown(report: dict, tape_a: dict, tape_b: dict) -> str:
     lines.append(
         f"**{s['total']} 项对比，{s['consistent']} 项一致，{s['different']} 项不同**"
     )
+    lines.append("")
+
+    prov = report.get("provenance") or {}
+    lines.append("## 本次变更")
+    lines.append("")
+    if not prov.get("available"):
+        lines.append(f"未记录运行配置：{prov.get('reason', '')}")
+    elif not prov.get("changed"):
+        lines.append("模型、Prompt、参数、工具均未变化。")
+    else:
+        for item in prov["items"]:
+            lines.append(f"- {provenance.describe(item)}")
     lines.append("")
 
     lines.append("## 内容差异")

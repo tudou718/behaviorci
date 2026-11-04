@@ -51,8 +51,12 @@ python src/llm.py           # 应该输出：✓ 连通正常
 
 ### 2.1 把记录器复制过去
 
-把 `behaviorci/src/recorder.py` 复制到你项目的任意位置（比如
-`observability/recorder.py`）。它只依赖 Python 标准库，不需要装别的包。
+把这两个文件复制到你项目的任意位置（比如 `observability/`）：
+
+- `behaviorci/src/recorder.py` —— 记录行为
+- `behaviorci/src/provenance.py` —— 记录「这次用的哪套 Prompt / 模型 / 参数」（想用归因才需要）
+
+它们只依赖 Python 标准库，不需要装别的包。
 
 ### 2.2 找一个「每一步都会经过」的地方
 
@@ -115,6 +119,29 @@ def run_my_agent(query):
 
 **为什么要记「输入 + 输出」而不是只记结果？**
 因为只看最终答案，你分不清「换个说法」和「少查了一次资料」——而后者才是真正的问题。
+
+### 2.5 记录运行配置（想要「变更归因」就加这一步）
+
+磁带默认只记行为，不知道你改了什么。再记一份配置指纹，报告就能写：
+
+> 提示词 summary_system 改动（相似度 0.17）
+
+```python
+from observability import provenance
+
+rec = Recorder(
+    "my-agent", {"query": user_query}, tapes_dir="tapes",
+    provenance=provenance.build(
+        agent="my-agent",
+        model=os.getenv("LLM_MODEL", ""),
+        prompts={"summary_system": SUMMARY_SYSTEM, "keyword_system": KEYWORD_SYSTEM},
+        params={"temperature": 0.7},
+        tools=["search", "write_file"],
+    ),
+)
+```
+
+Prompt 全文会存进磁带（几百字），这样对比时能算出「改了多少」，而不只是「变了」。
 
 ---
 
@@ -190,6 +217,7 @@ def scrub(value, session_id):
 - [ ] 出错路径也调了 `finish(status="error")`
 - [ ] 记录逻辑用 try/except 包住，失败不影响主流程
 - [ ] 重放两次确认没有命中缓存（耗时是秒级，不是毫秒级）
+- [ ] 记录了运行配置（prompt 指纹 / 模型 / 参数 / 工具），报告才能做变更归因
 
 ---
 

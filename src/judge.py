@@ -25,8 +25,10 @@ import uuid
 from collections import Counter
 
 try:
+    from . import provenance
     from .llm import ask, env, parse_json
 except ImportError:
+    import provenance
     from llm import ask, env, parse_json
 
 # 裁判温度默认 0：判决要稳，不要发挥。
@@ -56,6 +58,9 @@ B（候选，新行为）：
 
 结构对比结果：
 {structure}
+
+本次运行配置的变更：
+{provenance}
 
 请判断 B 相对 A 属于哪一类：
 - 等价：差异只是措辞、顺序、同义表达等抖动，不影响任务完成质量与意图
@@ -158,10 +163,15 @@ def judge(
 
     返回 {"verdict", "reason", "model", "attempts", "elapsed_ms", "raw"}。
     """
+    prov = provenance.diff(
+        (tape_a.get("meta") or {}).get("provenance"),
+        (tape_b.get("meta") or {}).get("provenance"),
+    )
     prompt = JUDGE_TEMPLATE.format(
         a=tape_digest(tape_a),
         b=tape_digest(tape_b),
         structure=_structure_text(tape_a, tape_b),
+        provenance=provenance.summary_text(prov),
     )
 
     started = time.perf_counter()

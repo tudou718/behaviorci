@@ -44,6 +44,7 @@ class Recorder:
         tapes_dir: Path | str | None = None,
         variant: str | None = None,
         model: str | None = None,
+        provenance: dict | None = None,
     ) -> None:
         self.task_name = task_name
         self.task_input = task_input or {}
@@ -51,6 +52,8 @@ class Recorder:
         self.tapes_dir = Path(tapes_dir) if tapes_dir else ROOT / "tapes"
         # 变体标记：同一个任务跑第几次、或者改 Prompt 的前后版本（v1/v2/baseline）
         self.variant = variant
+        # 运行配置指纹：用的哪套 prompt / 模型 / 参数 / 工具（见 provenance.py）
+        self.provenance = provenance or {}
 
         self.steps: list[dict] = []
         self.started_at = datetime.now().astimezone()
@@ -117,6 +120,7 @@ class Recorder:
                 "agent": self.agent,
                 "model": self.model,
                 "variant": self.variant,
+                "provenance": self.provenance,
                 "status": status,
                 "error": error,
                 "started_at": self.started_at.isoformat(timespec="seconds"),

@@ -32,9 +32,11 @@ from pathlib import Path
 
 try:
     from . import judge as judge_mod
+    from . import provenance
     from .tape import final_output_text, load_tape, walk_diff
 except ImportError:
     import judge as judge_mod
+    import provenance
     from tape import final_output_text, load_tape, walk_diff
 
 # ---------------------------------------------------------------------------
@@ -188,6 +190,11 @@ def compare(
             "different": len(checks) - consistent,
         },
         "content": content,
+        # 这次对比背后，Prompt / 模型 / 参数 / 工具改了什么
+        "provenance": provenance.diff(
+            (tape_a.get("meta") or {}).get("provenance"),
+            (tape_b.get("meta") or {}).get("provenance"),
+        ),
         # 好坏不是笨办法能判的，这一段来自 judge.py
         "verdict": verdict,
     }
@@ -231,6 +238,16 @@ def print_report(report: dict) -> None:
             print(f"  #{item['index']} {item['label']}：输出 {item['diff_count']} 处不同  {tag}")
         if content["final_output_changed"]:
             print("  最终交付物也变了。")
+
+    prov = report.get("provenance") or {}
+    print("\n变更归因（这次对比背后改了什么配置）")
+    if not prov.get("available"):
+        print(f"  ⚠ {prov.get('reason', '没有记录运行配置')}")
+    elif not prov.get("changed"):
+        print("  ✓ 模型、Prompt、参数、工具都没有变化")
+    else:
+        for item in prov["items"]:
+            print(f"  · {provenance.describe(item)}")
 
     print("\n注意：结构一致 ≠ 行为等价。骨架一模一样、内容却变了，是最常见的情况——")
     print("      这正是笨办法的天花板，所以要请裁判来读内容。\n")

@@ -26,15 +26,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
 # 支持两种运行方式：python src/demo_agent.py  或  python -m src.demo_agent
 try:
+    from . import provenance
     from .llm import ask, parse_json
     from .recorder import Recorder
 except ImportError:
+    import provenance
     from llm import ask, parse_json
     from recorder import Recorder
 
@@ -183,6 +186,20 @@ def run(topic: str, record: bool = True, variant: str | None = None) -> dict:
             task_input={"topic": topic},
             agent="demo_agent",
             variant=variant,
+            model=os.getenv("LLM_MODEL", ""),
+            provenance=provenance.build(
+                agent="demo_agent",
+                model=os.getenv("LLM_MODEL", ""),
+                prompts={
+                    "keyword_system": KEYWORD_SYSTEM,
+                    "summary_system": SUMMARY_SYSTEM,
+                },
+                params={
+                    "temperature_keywords": 0.2,
+                    "temperature_summary": 0.7,
+                },
+                tools=["mock_search"],
+            ),
         )
         if record
         else None

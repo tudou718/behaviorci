@@ -21,6 +21,11 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+try:
+    from . import provenance
+except ImportError:
+    import provenance
+
 ROOT = Path(__file__).resolve().parent.parent
 
 VERDICT_STYLE = {
@@ -71,6 +76,19 @@ def render_html(payload: dict) -> str:
 
     css_class, verdict_text = _verdict_block(verdict)
     generated = payload.get("generated_at", "").replace("T", " ")[:19]
+
+    prov = report.get("provenance") or {}
+    if not prov.get("available"):
+        prov_html = (
+            "<p style='color:var(--muted)'>未记录运行配置"
+            "（旧版本录制的磁带）</p>"
+        )
+    elif not prov.get("changed"):
+        prov_html = "<p>模型、Prompt、参数、工具均未变化。</p>"
+    else:
+        prov_html = "<ul>" + "".join(
+            f"<li>{_esc(provenance.describe(item))}</li>" for item in prov["items"]
+        ) + "</ul>"
 
     checks_html = "\n".join(
         f"<tr><td>{_esc(c['label'])}</td>"
@@ -197,6 +215,11 @@ def render_html(payload: dict) -> str:
     <p style="color:var(--muted);font-size:13px;margin:12px 0 0">
       {summary['total']} 项对比，{summary['consistent']} 项一致，{summary['different']} 项不同
     </p>
+  </section>
+
+  <section>
+    <h2>本次变更</h2>
+    {prov_html}
   </section>
 
   <section>
