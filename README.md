@@ -29,6 +29,8 @@ Agent 的输出是不确定的。改一句提示词、换一个模型版本、�
 5. **出报告**：终端结论 + Markdown/JSON 报告 + 一页公开网页
 6. **可归因**：磁带同时记录 Prompt / 模型 / 参数的指纹，报告能指出「行为变化伴随
    summary_system 提示词改动，相似度 0.17」——从「检测到变化」走到「知道为什么变」
+7. **看分布**：每个变体跑 N 次，用**基线自身的抖动**当噪声线。组间相似度落在噪声内
+   就是抖动，明显低于噪声线才是漂移——避免「这次不一样」被误当作「行为变了」
 
 裁判不是判一次就完：同一个对比会跑 **3 次取多数**，票型（比如 3:0 或 2:1）一并写进报告——
 分歧本身就是「这题该由人来拍板」的信号。
@@ -42,8 +44,11 @@ cp .env.example .env          # 填入 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL
 # 1. 录一份基线磁带
 python main.py record --label baseline
 
-# 2. 改完 Prompt 后，用同一任务再跑两次
-python main.py replay --runs 2 --labels baseline,new-prompt
+# 2. 改完 Prompt 后重放：每个变体跑 3 次（分布对比需要多次）
+python main.py replay --runs 2 --labels baseline,new-prompt --repeat 3
+
+# 2.1 分布对比：看是漂移还是抖动
+python main.py experiment --task daily-brief --baseline baseline --candidate new-prompt
 
 # 3. 对比 + 裁判 + 报告，并在浏览器打开可视化报告
 python main.py compare tapes/<基线>.json tapes/<候选>.json --open
@@ -98,6 +103,16 @@ flowchart LR
 
 这说明裁判看的是**行为**，不是 diff 本身：它不会因为「文字不一样」就报警，
 也不会因为「文件被改过」就默认出事。
+
+**分布对比：两个变体各跑 3 次**
+
+| 对比 | 组间相似度 | 基线噪声线 | 差值 | 结论 |
+|---|---|---|---|---|
+| 同一 Prompt 跑两组（对照） | 0.80 | 0.81 | 0.01 | 未见漂移 |
+| 改坏 Prompt（无视资料） | 0.52 | 0.81 | 0.29 | 明显漂移 |
+
+对照组是专门用来验证「不误报」的：同样的 Prompt 多跑一轮，组间差异落在噪声里，不会被当成漂移。
+候选组还额外暴露了自身不稳定（组内相似度只有 0.40，基线是 0.81）。
 
 **真实的裁判分歧（2026-11-03 自动巡检）**
 

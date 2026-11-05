@@ -170,6 +170,25 @@ python main.py compare tapes/<基线>.json tapes/<候选>.json --open
 
 ---
 
+## 想更进一步：跑多次看分布
+
+单次比较只能说明「这次不一样」。要区分**行为漂移**和**模型抖动**，每个变体至少跑 3 次：
+
+```bash
+python main.py replay --runs 2 --labels baseline,new-prompt --repeat 3
+python main.py experiment --task my-task --baseline baseline --candidate new-prompt
+```
+
+它会告诉你：
+
+- 每个变体的步骤数、耗时、交付物长度的均值与波动
+- **组内相似度**（这个 Agent 自己的抖动幅度，也就是噪声线）
+- **组间相似度**（两个变体之间的差异）
+- 结论：未见漂移 / 轻微差异 / 明显漂移
+
+判断逻辑是「组间相似度是否明显低于基线噪声线」。这样，同一份 Prompt 多跑一轮不会被误报，
+而真正改坏的行为会明显掉出噪声范围。
+
 ## 常见问题
 
 **Q：两次结果都是「等价」，是不是没测出来？**

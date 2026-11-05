@@ -167,7 +167,12 @@ def write_summary(
 # 串起来：一次完整运行
 # ---------------------------------------------------------------------------
 
-def run(topic: str, record: bool = True, variant: str | None = None) -> dict:
+def run(
+    topic: str,
+    record: bool = True,
+    variant: str | None = None,
+    cache_nonce: str | None = None,
+) -> dict:
     """跑一次完整任务，返回这次运行的完整结果。
 
     默认边跑边录：每做完一步就 recorder.log 一笔，最后存成一份磁带。
@@ -179,6 +184,9 @@ def run(topic: str, record: bool = True, variant: str | None = None) -> dict:
     #   1) 当 API 的 user 字段，让网关的缓存失效（见 ask 的说明）
     #   2) 写进磁带，方便你把某一步的问题追溯到唯一一次运行
     run_tag = variant or datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    if cache_nonce:
+        # 同一变体重复运行时，必须让缓存键不同，否则每次拿到的都是同一份缓存
+        run_tag = f"{run_tag}-{cache_nonce}"
 
     recorder = (
         Recorder(

@@ -1,0 +1,137 @@
+{
+  "tape_version": 1,
+  "task": {
+    "name": "daily-brief",
+    "input": {
+      "topic": "AI Agent 最新进展"
+    }
+  },
+  "meta": {
+    "run_id": "daily-brief-base-20261105-114722",
+    "agent": "demo_agent",
+    "model": "deepseek-v4.1-flash-1017",
+    "variant": "base",
+    "provenance": {
+      "agent": "demo_agent",
+      "model": "deepseek-v4.1-flash-1017",
+      "prompts": [
+        {
+          "name": "keyword_system",
+          "sha256": "6635c24759a194e9",
+          "chars": 44,
+          "text": "你是一个信息检索助手。你只输出 JSON，不输出解释，不使用 markdown 代码块。"
+        },
+        {
+          "name": "summary_system",
+          "sha256": "61d5b50b8a836e26",
+          "chars": 56,
+          "text": "你是一名技术简报撰稿人。写作克制、具体，不堆形容词，不用 markdown 标题，不编造资料里没有的数字或事实。"
+        }
+      ],
+      "params": {
+        "temperature_keywords": 0.2,
+        "temperature_summary": 0.7
+      },
+      "tools": [
+        "mock_search"
+      ]
+    },
+    "status": "ok",
+    "error": null,
+    "started_at": "2026-11-05T11:47:22+08:00",
+    "finished_at": "2026-11-05T11:47:29+08:00",
+    "duration_ms": 7242,
+    "step_count": 3
+  },
+  "steps": [
+    {
+      "index": 1,
+      "name": "generate_keywords",
+      "label": "规划关键词",
+      "ended_at": "2026-11-05T11:47:24+08:00",
+      "duration_ms": 1318,
+      "input": {
+        "topic": "AI Agent 最新进展"
+      },
+      "output": {
+        "keywords": [
+          "AI Agent 最新进展",
+          "AI Agent 工程落地实践",
+          "AI Agent 局限与争议"
+        ]
+      }
+    },
+    {
+      "index": 2,
+      "name": "search",
+      "label": "模拟搜索",
+      "ended_at": "2026-11-05T11:47:24+08:00",
+      "duration_ms": 0,
+      "input": {
+        "keywords": [
+          "AI Agent 最新进展",
+          "AI Agent 工程落地实践",
+          "AI Agent 局限与争议"
+        ]
+      },
+      "output": {
+        "results": [
+          {
+            "keyword": "AI Agent 最新进展",
+            "title": "AI Agent 最新进展：本年度进展综述",
+            "snippet": "多家机构在「AI Agent 最新进展」方向上发布新工作，关注点集中在工具调用稳定性、长任务规划与推理成本，行业仍缺一套统一的评测口径。",
+            "url": "mock://search/61397051"
+          },
+          {
+            "keyword": "AI Agent 工程落地实践",
+            "title": "「AI Agent 工程落地实践」工程落地盘点",
+            "snippet": "一线团队反馈，「AI Agent 工程落地实践」落地的难点不在模型能力，而在行为可复现性：同一个任务跑两次，中间步骤和最终结论都可能不一样。",
+            "url": "mock://search/1525383"
+          },
+          {
+            "keyword": "AI Agent 局限与争议",
+            "title": "关于「AI Agent 局限与争议」的三个常见误解",
+            "snippet": "讨论「AI Agent 局限与争议」时，常把「演示效果好」等同于「生产可用」。两者之间差的是回归测试、可观测性与失败时的兜底策略。",
+            "url": "mock://search/48940968"
+          }
+        ]
+      }
+    },
+    {
+      "index": 3,
+      "name": "write_summary",
+      "label": "撰写摘要",
+      "ended_at": "2026-11-05T11:47:29+08:00",
+      "duration_ms": 5924,
+      "input": {
+        "topic": "AI Agent 最新进展",
+        "results": [
+          {
+            "keyword": "AI Agent 最新进展",
+            "title": "AI Agent 最新进展：本年度进展综述",
+            "snippet": "多家机构在「AI Agent 最新进展」方向上发布新工作，关注点集中在工具调用稳定性、长任务规划与推理成本，行业仍缺一套统一的评测口径。",
+            "url": "mock://search/61397051"
+          },
+          {
+            "keyword": "AI Agent 工程落地实践",
+            "title": "「AI Agent 工程落地实践」工程落地盘点",
+            "snippet": "一线团队反馈，「AI Agent 工程落地实践」落地的难点不在模型能力，而在行为可复现性：同一个任务跑两次，中间步骤和最终结论都可能不一样。",
+            "url": "mock://search/1525383"
+          },
+          {
+            "keyword": "AI Agent 局限与争议",
+            "title": "关于「AI Agent 局限与争议」的三个常见误解",
+            "snippet": "讨论「AI Agent 局限与争议」时，常把「演示效果好」等同于「生产可用」。两者之间差的是回归测试、可观测性与失败时的兜底策略。",
+            "url": "mock://search/48940968"
+          }
+        ]
+      },
+      "output": {
+        "summary": "本年度「AI Agent 最新进展」方向上，多家机构发布了新工作，关注点集中在工具调用稳定性、长任务规划与推理成本，行业仍缺一套统一的评测口径。一线团队反馈，工程落地的难点不在模型能力，而在行为可复现性：同一个任务跑两次，中间步骤和最终结论都可能不一样。围绕局限与争议，一个常见误解是把「演示效果好」等同于「生产可用」，两者之间差的是回归测试、可观测性与失败时的兜底策略。目前这个方向最没解决好的，是在缺少统一评测口径的情况下，让同一任务的行为在生产中稳定可复现。"
+      }
+    }
+  ],
+  "output": {
+    "summary": "本年度「AI Agent 最新进展」方向上，多家机构发布了新工作，关注点集中在工具调用稳定性、长任务规划与推理成本，行业仍缺一套统一的评测口径。一线团队反馈，工程落地的难点不在模型能力，而在行为可复现性：同一个任务跑两次，中间步骤和最终结论都可能不一样。围绕局限与争议，一个常见误解是把「演示效果好」等同于「生产可用」，两者之间差的是回归测试、可观测性与失败时的兜底策略。目前这个方向最没解决好的，是在缺少统一评测口径的情况下，让同一任务的行为在生产中稳定可复现。"
+  }
+}

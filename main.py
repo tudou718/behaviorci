@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import demo_agent  # noqa: E402
 import diff  # noqa: E402
+import experiment  # noqa: E402
 import replay  # noqa: E402
 import stats  # noqa: E402
 from report import save  # noqa: E402
@@ -66,7 +67,9 @@ def cmd_replay(args: argparse.Namespace) -> int:
     task = replay.load_task(Path(args.task))
     labels = [s.strip() for s in args.labels.split(",")] if args.labels else None
 
-    records = replay.replay(task, runs=args.runs, labels=labels)
+    records = replay.replay(
+        task, runs=args.runs, labels=labels, repeat=args.repeat
+    )
     replay.print_overview(records)
 
     ok = [r for r in records if r["ok"]]
@@ -119,6 +122,31 @@ def cmd_compare(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# experiment：分布级对比
+# ---------------------------------------------------------------------------
+
+def cmd_experiment(args: argparse.Namespace) -> int:
+    groups = experiment.load_groups(args.task)
+    missing = [v for v in (args.baseline, args.candidate) if v not in groups]
+    if missing:
+        print(
+            f"找不到变体：{', '.join(missing)}；现有：{', '.join(groups) or '无'}",
+            file=sys.stderr,
+        )
+        return 2
+
+    result = experiment.compare_groups(groups[args.baseline], groups[args.candidate])
+    if args.json:
+        payload = {k: v for k, v in result.items() if k not in ("baseline", "candidate")}
+        payload["baseline"] = {k: v for k, v in result["baseline"].items() if k != "finals"}
+        payload["candidate"] = {k: v for k, v in result["candidate"].items() if k != "finals"}
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        print(experiment.render(result, args.baseline, args.candidate))
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # stats：实测统计
 # ---------------------------------------------------------------------------
 
@@ -153,6 +181,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_replay.add_argument(
         "--labels", help="逗号分隔的变体名，如 baseline,new-prompt"
     )
+    p_replay.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="每个变体重复几次（做分布对比时用，建议 3-5）",
+    )
     p_replay.set_defaults(func=cmd_replay)
 
     p_compare = sub.add_parser("compare", help="对比两份磁带，出判定和报告")
@@ -173,6 +207,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="判定为漂移时以退出码 1 结束（CI 用）",
     )
     p_compare.set_defaults(func=cmd_compare)
+
+    p_exp = sub.add_parser("experiment", help="按变体比较分布（漂移还是抖动）")
+    p_exp.add_argument("--task", required=True, help="任务名，如 daily-brief")
+    p_exp.add_argument("--baseline", required=True, help="基线变体名")
+    p_exp.add_argument("--candidate", required=True, help="候选变体名")
+    p_exp.add_argument("--json", action="store_true", help="输出 JSON")
+    p_exp.set_defaults(func=cmd_experiment)
 
     p_stats = sub.add_parser("stats", help="统计磁带、对比结论与 token 用量")
     p_stats.add_argument("--json", action="store_true", help="输出 JSON")

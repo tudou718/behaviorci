@@ -134,6 +134,11 @@ class Recorder:
 
         self.tapes_dir.mkdir(parents=True, exist_ok=True)
         path = self.tapes_dir / f"{run_id}.json"
+        # 同一秒内跑多次（例如批量重复实验）时不要互相覆盖
+        suffix = 2
+        while path.exists():
+            path = self.tapes_dir / f"{run_id}-{suffix}.json"
+            suffix += 1
         path.write_text(
             json.dumps(tape, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )

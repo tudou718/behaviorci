@@ -66,38 +66,50 @@ def load_task(path: Path) -> dict:
 # 重放
 # ---------------------------------------------------------------------------
 
-def replay(task: dict, runs: int = 2, labels: list[str] | None = None) -> list[dict]:
-    """把同一个任务跑 runs 次，每次录一份磁带，返回每次的结果摘要。"""
+def replay(
+    task: dict,
+    runs: int = 2,
+    labels: list[str] | None = None,
+    repeat: int = 1,
+) -> list[dict]:
+    """把同一个任务跑 runs 个变体、每个变体 repeat 次，返回每次的结果摘要。"""
     topic = task["input"]["topic"]
     labels = labels or [f"v{i}" for i in range(1, runs + 1)]
     if len(labels) != runs:
         raise SystemExit(f"labels 数量是 {len(labels)}，但 runs 是 {runs}，对不上")
 
-    print(f"任务：{task['name']}  主题：{topic}  共 {runs} 次\n")
+    total = runs * repeat
+    print(f"任务：{task['name']}  主题：{topic}  共 {total} 次（{runs} 个变体 × {repeat}）\n")
 
     records = []
     for i, label in enumerate(labels, start=1):
-        print(f"[{i}/{runs}] 运行 {label} ...", file=sys.stderr)
-        try:
-            result = demo_agent.run(topic, record=True, variant=label)
-        except Exception as exc:
-            # 一次跑崩不该毁掉整批；记下来，继续跑下一次
-            print(f"      ✗ 失败：{type(exc).__name__}: {exc}", file=sys.stderr)
-            records.append({"variant": label, "ok": False, "error": str(exc)})
-            continue
+        for rep in range(repeat):
+            print(f"[{i}/{runs}] 运行 {label} 第 {rep + 1}/{repeat} 次 ...", file=sys.stderr)
+            try:
+                result = demo_agent.run(
+                    topic,
+                    record=True,
+                    variant=label,
+                    cache_nonce=f"{rep}-{time.time_ns()}",
+                )
+            except Exception as exc:
+                # 一次跑崩不该毁掉整批；记下来，继续跑下一次
+                print(f"      ✗ 失败：{type(exc).__name__}: {exc}", file=sys.stderr)
+                records.append({"variant": label, "ok": False, "error": str(exc)})
+                continue
 
-        tape_path = Path(result["tape"])
-        tape = json.loads(tape_path.read_text(encoding="utf-8"))
-        records.append(
-            {
-                "variant": label,
-                "ok": True,
-                "tape": tape_path,
-                "duration_ms": tape["meta"]["duration_ms"],
-                "keywords": result["keywords"],
-                "summary": result["summary"],
-            }
-        )
+            tape_path = Path(result["tape"])
+            tape = json.loads(tape_path.read_text(encoding="utf-8"))
+            records.append(
+                {
+                    "variant": label,
+                    "ok": True,
+                    "tape": tape_path,
+                    "duration_ms": tape["meta"]["duration_ms"],
+                    "keywords": result["keywords"],
+                    "summary": result["summary"],
+                }
+            )
     return records
 
 
