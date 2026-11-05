@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +32,16 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # 磁带格式版本号。以后字段变了，老磁带还能按版本号识别。
 TAPE_VERSION = 1
+
+
+def safe_name(text: str, limit: int = 80) -> str:
+    """把任务名/变体名变成安全的文件名片段。
+
+    磁带里的 task 名可能来自外部导入，若含 "/" 或 ".." 会写到目录之外；
+    这里只保留字母数字、下划线、连字符、点和中日韩文字。
+    """
+    cleaned = re.sub(r"[^\w\-.一-鿿]+", "-", str(text or "task"))
+    return cleaned.strip("-.")[:limit] or "task"
 
 
 class Recorder:
@@ -109,10 +120,11 @@ class Recorder:
         """收尾：补上结束时间、总耗时，把磁带写到 tapes/ 目录，返回文件路径。"""
         finished_at = datetime.now().astimezone()
         stamp = f"{self.started_at:%Y%m%d-%H%M%S}"
+        task_part = safe_name(self.task_name)
         if self.variant:
-            run_id = f"{self.task_name}-{self.variant}-{stamp}"
+            run_id = f"{task_part}-{safe_name(self.variant)}-{stamp}"
         else:
-            run_id = f"{self.task_name}-{stamp}"
+            run_id = f"{task_part}-{stamp}"
 
         tape = {
             "tape_version": TAPE_VERSION,

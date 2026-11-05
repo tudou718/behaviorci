@@ -31,6 +31,8 @@ Agent 的输出是不确定的。改一句提示词、换一个模型版本、�
    summary_system 提示词改动，相似度 0.17」——从「检测到变化」走到「知道为什么变」
 7. **看分布**：每个变体跑 N 次，用**基线自身的抖动**当噪声线。组间相似度落在噪声内
    就是抖动，明显低于噪声线才是漂移——避免「这次不一样」被误当作「行为变了」
+8. **可校准**：用人工标注集衡量裁判本身（一致率 / 混淆矩阵 / Cohen's kappa），
+   把「裁判准不准」从感觉变成数字
 
 裁判不是判一次就完：同一个对比会跑 **3 次取多数**，票型（比如 3:0 或 2:1）一并写进报告——
 分歧本身就是「这题该由人来拍板」的信号。
@@ -209,8 +211,19 @@ BehaviorCI 不绑定任何框架：只要能按「步骤 + 输入 + 输出」记
 
 ## 文档
 
-- [接入指南](docs/integration.md) — 把 BehaviorCI 接到自己的 Agent 上：三步接入、最小示例、脱敏写法、常见问题（[网页版](https://tudou718.github.io/behaviorci/guide.html)）
+- [操作手册](docs/manual.md) — 日常命令速查、三条常用工作流、报告位置、故障排查
+- [架构说明](docs/architecture.md) — 数据流、模块职责、关键设计取舍、已知局限
+- [接入指南](docs/integration.md) — 把 BehaviorCI 接到自己的 Agent 上（[网页版](https://tudou718.github.io/behaviorci/guide.html)）
 - [巡检工作流](.github/workflows/behaviorci.yml) — 自动录制、对比、发布报告
+
+## 测试
+
+```bash
+python -m unittest discover -s tests -v    # 20 项，全部不调用模型
+```
+
+覆盖判定归一化（含否定句）、投票、字段级差异、运行配置归因、kappa 边界、
+网页转义、路径穿越与磁带文件防覆盖。CI 每次运行前也会先跑一遍。
 
 ## License
 

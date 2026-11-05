@@ -113,6 +113,9 @@ def cohen_kappa(results: list[dict], labels: list[str] = LABELS) -> float | None
     po = sum(1 for r in valid if r["correct"]) / n
     human = Counter(r["label"] for r in valid)
     judge = Counter(r["predicted"] for r in valid)
+    # 只有一个类别时 kappa 没有定义（随机一致度就是 1），返回 None 而不是 1.0
+    if len(set(human) | set(judge)) < 2:
+        return None
     pe = sum(human[label] * judge[label] for label in labels) / (n * n)
     if pe >= 1:
         return 1.0

@@ -181,7 +181,7 @@ def save(
     out.mkdir(parents=True, exist_ok=True)
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    stem = f"{stamp}-{report['task']}"
+    stem = f"{stamp}-{safe_name(report['task'])}"
 
     md_path = out / f"{stem}.md"
     json_path = out / f"{stem}.json"

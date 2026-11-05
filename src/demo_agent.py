@@ -25,6 +25,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -120,7 +121,10 @@ def mock_search(keywords: list[str]) -> list[dict]:
                 "keyword": keyword,
                 "title": title_tpl.format(kw=keyword),
                 "snippet": snippet_tpl.format(kw=keyword),
-                "url": "mock://search/" + str(abs(hash(keyword)) % 10**8),
+                # 用 md5 而不是内置 hash()：后者每个进程的种子不同，
+                # 同一个关键词两次运行会得到不同 URL，凭空制造差异。
+                "url": "mock://search/"
+                + hashlib.md5(keyword.encode("utf-8")).hexdigest()[:8],
             }
         )
     return results
@@ -184,10 +188,11 @@ def run(
     # 每次运行一个唯一的运行标识。它有两个用途：
     #   1) 当 API 的 user 字段，让网关的缓存失效（见 ask 的说明）
     #   2) 写进磁带，方便你把某一步的问题追溯到唯一一次运行
-    run_tag = variant or datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    if cache_nonce:
-        # 同一变体重复运行时，必须让缓存键不同，否则每次拿到的都是同一份缓存
-        run_tag = f"{run_tag}-{cache_nonce}"
+    # 缓存键必须每次运行都不同：网关会把 prompt 完全相同的请求直接返回缓存，
+    # 同一个 --label 连跑两次如果共用缓存键，两次"独立运行"其实是同一份结果，
+    # 组内方差会假性地变成 0。
+    nonce = cache_nonce or datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    run_tag = f"{variant or 'run'}-{nonce}"
 
     recorder = (
         Recorder(

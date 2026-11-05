@@ -33,10 +33,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     env:
-      # 这三个来自仓库 Settings → Secrets and variables → Actions
-      LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-      LLM_MODEL: ${{ secrets.LLM_MODEL }}
+      # 只放非敏感配置；密钥按步骤注入，避免 checkout / pip / 测试步骤也拿得到
       JUDGE_RUNS: "3"
 
     steps:
@@ -51,7 +48,14 @@ jobs:
       - name: 装依赖
         run: pip install -r requirements.txt
 
+      - name: 单元测试
+        run: python -m unittest discover -s tests -v
+
       - name: 检查密钥是否配置
+        env:
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
         run: |
           if [ -z "$LLM_API_KEY" ] || [ -z "$LLM_BASE_URL" ] || [ -z "$LLM_MODEL" ]; then
             echo "::error::缺少模型配置。请到 Settings → Secrets and variables → Actions 配置 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL。"
@@ -59,6 +63,10 @@ jobs:
           fi
 
       - name: 录制候选磁带
+        env:
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
         run: python main.py record --label "ci-${{ github.run_number }}"
 
       - name: 选基线磁带
@@ -102,6 +110,10 @@ jobs:
           echo "基线磁带：$BASE"
 
       - name: 对比与裁决
+        env:
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
         run: |
           python main.py compare \
             "${{ steps.pick.outputs.baseline }}" \
