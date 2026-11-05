@@ -189,6 +189,35 @@ python main.py experiment --task my-task --baseline baseline --candidate new-pro
 判断逻辑是「组间相似度是否明显低于基线噪声线」。这样，同一份 Prompt 多跑一轮不会被误报，
 而真正改坏的行为会明显掉出噪声范围。
 
+## 校准裁判（强烈建议）
+
+裁判准不准，不能靠感觉。准备一套**人工标注**的磁带对，跑一次校准：
+
+```bash
+python main.py calibrate            # 默认 3 票多数
+python main.py calibrate --runs 1   # 省钱模式
+```
+
+它会输出一致率、Cohen's kappa 和混淆矩阵，告诉你：
+
+- 裁判在哪些类别上容易混（例如把「变好」判成「等价」）
+- 一致的结论值不值得直接当门禁
+
+标注文件格式见仓库里的 `calibration/cases.json`，每条形如：
+
+```json
+{
+  "id": "case-01",
+  "baseline": "tapes/a.json",
+  "candidate": "tapes/b.json",
+  "label": "漂移",
+  "note": "为什么人工认为是漂移"
+}
+```
+
+**注意两点**：标注必须在跑裁判之前定好；不要把校准集当成调参集——
+如果根据结果反复改提示词再在同一套样本上测，kappa 会虚高。
+
 ## 常见问题
 
 **Q：两次结果都是「等价」，是不是没测出来？**

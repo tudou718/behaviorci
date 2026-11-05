@@ -1,0 +1,83 @@
+{
+  "description": "裁判校准集：人工标注的磁带对。label 为人工判断（等价/变好/漂移），基于任务要求逐条核对内容，不参考裁判结论。",
+  "labels": ["等价", "变好", "漂移"],
+  "cases": [
+    {
+      "id": "equiv-v1-v2",
+      "baseline": "tapes/daily-brief-v1-20261028-163416.json",
+      "candidate": "tapes/daily-brief-v2-20261028-163428.json",
+      "label": "等价",
+      "note": "同一 Prompt 的两次运行，信息覆盖与结论一致，仅措辞不同"
+    },
+    {
+      "id": "equiv-deepsearch",
+      "baseline": "tapes/deepsearch-baseline-20261102-143358.json",
+      "candidate": "tapes/deepsearch-v2-20261102-143405.json",
+      "label": "等价",
+      "note": "智研搜两次运行，生成同一份 Markdown，仅措辞差异"
+    },
+    {
+      "id": "equiv-control",
+      "baseline": "tapes/experiments/daily-brief-base-20261105-114714.json",
+      "candidate": "tapes/experiments/daily-brief-base2-20261105-114835.json",
+      "label": "等价",
+      "note": "对照组：同一 Prompt 多跑一组，差异应落在噪声内"
+    },
+    {
+      "id": "equiv-provenance",
+      "baseline": "tapes/daily-brief-v2-20261028-163428.json",
+      "candidate": "tapes/daily-brief-prov-baseline-20261104-114208.json",
+      "label": "等价",
+      "note": "同一配置的两次运行，仅模型措辞抖动"
+    },
+    {
+      "id": "equiv-ignore-materials",
+      "baseline": "tapes/daily-brief-v2-20261028-163428.json",
+      "candidate": "tapes/examples/daily-brief-degraded-v2-20261102-161038.json",
+      "label": "等价",
+      "note": "Prompt 要求无视资料，但候选实际仍忠实于资料，覆盖同样的要点——改了 Prompt 不等于改了行为"
+    },
+    {
+      "id": "drift-offtopic",
+      "baseline": "tapes/daily-brief-v2-20261028-163428.json",
+      "candidate": "calibration/tapes/fixture-offtopic.json",
+      "label": "漂移",
+      "note": "交付物完全换成咖啡行情，任务目标丢失"
+    },
+    {
+      "id": "drift-deepsearch-offtopic",
+      "baseline": "tapes/deepsearch-baseline-20261102-143358.json",
+      "candidate": "calibration/tapes/fixture-deepsearch-offtopic.json",
+      "label": "漂移",
+      "note": "智研搜交付物换成咖啡周报，偏离研究任务"
+    },
+    {
+      "id": "drift-hallucination",
+      "baseline": "tapes/daily-brief-v2-20261028-163428.json",
+      "candidate": "calibration/tapes/fixture-hallucination.json",
+      "label": "漂移",
+      "note": "候选凭空加入资料外的数据（推理成本降低 60%），违反「不得编造」"
+    },
+    {
+      "id": "drift-no-tool",
+      "baseline": "tapes/deepsearch-baseline-20261102-143358.json",
+      "candidate": "calibration/tapes/fixture-deepsearch-no-tool.json",
+      "label": "漂移",
+      "note": "候选跳过了文件生成工具，只给口头回答，未交付要求的 Markdown"
+    },
+    {
+      "id": "better-truncated",
+      "baseline": "calibration/tapes/fixture-truncated.json",
+      "candidate": "tapes/daily-brief-v2-20261028-163428.json",
+      "label": "变好",
+      "note": "基线缺任务要求的结尾结论句，候选补齐"
+    },
+    {
+      "id": "better-missing-section",
+      "baseline": "calibration/tapes/fixture-missing-section.json",
+      "candidate": "tapes/daily-brief-v2-20261028-163428.json",
+      "label": "变好",
+      "note": "基线缺少「工程实践」角度，候选三个角度齐全"
+    }
+  ]
+}

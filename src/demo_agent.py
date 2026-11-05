@@ -172,6 +172,7 @@ def run(
     record: bool = True,
     variant: str | None = None,
     cache_nonce: str | None = None,
+    requirements: list[str] | None = None,
 ) -> dict:
     """跑一次完整任务，返回这次运行的完整结果。
 
@@ -192,6 +193,7 @@ def run(
         Recorder(
             task_name=TASK_NAME,
             task_input={"topic": topic},
+            task_requirements=requirements,
             agent="demo_agent",
             variant=variant,
             model=os.getenv("LLM_MODEL", ""),

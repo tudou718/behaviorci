@@ -91,6 +91,7 @@ def replay(
                     record=True,
                     variant=label,
                     cache_nonce=f"{rep}-{time.time_ns()}",
+                    requirements=task.get("requirements"),
                 )
             except Exception as exc:
                 # 一次跑崩不该毁掉整批；记下来，继续跑下一次

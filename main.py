@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
 import demo_agent  # noqa: E402
+import calibrate  # noqa: E402
 import diff  # noqa: E402
 import experiment  # noqa: E402
 import replay  # noqa: E402
@@ -51,7 +52,12 @@ def cmd_record(args: argparse.Namespace) -> int:
     topic = task["input"]["topic"]
 
     print(f"任务：{task['name']}    主题：{topic}")
-    result = demo_agent.run(topic, record=True, variant=args.label)
+    result = demo_agent.run(
+        topic,
+        record=True,
+        variant=args.label,
+        requirements=task.get("requirements"),
+    )
 
     tape = Path(result["tape"])
     print(f"\n✓ 磁带：{_rel(tape)}")
@@ -118,6 +124,33 @@ def cmd_compare(args: argparse.Namespace) -> int:
 
     if args.fail_on_drift and report["verdict"].get("verdict") == "漂移":
         return 1
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# calibrate：裁判校准
+# ---------------------------------------------------------------------------
+
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    cases, missing = calibrate.load_cases(Path(args.cases))
+    for item in missing:
+        print(f"⚠ 跳过：{item}", file=sys.stderr)
+    if not cases:
+        print("没有可用的校准样本", file=sys.stderr)
+        return 2
+
+    results = calibrate.run(cases, runs=args.runs)
+    summary = calibrate.summarize(results, runs=args.runs)
+
+    if args.json:
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
+    else:
+        print()
+        print(calibrate.render(summary))
+
+    if not args.no_save:
+        md_path, json_path = calibrate.save(summary)
+        print(f"校准报告：{_rel(md_path)} / {_rel(json_path)}")
     return 0
 
 
@@ -214,6 +247,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_exp.add_argument("--candidate", required=True, help="候选变体名")
     p_exp.add_argument("--json", action="store_true", help="输出 JSON")
     p_exp.set_defaults(func=cmd_experiment)
+
+    p_cal = sub.add_parser("calibrate", help="用人工标注集校准裁判")
+    p_cal.add_argument("--cases", default=str(ROOT / "calibration" / "cases.json"))
+    p_cal.add_argument("--runs", type=int, default=3, help="每对裁判跑几次（默认 3）")
+    p_cal.add_argument("--json", action="store_true", help="输出 JSON")
+    p_cal.add_argument("--no-save", action="store_true", help="不写 reports/")
+    p_cal.set_defaults(func=cmd_calibrate)
 
     p_stats = sub.add_parser("stats", help="统计磁带、对比结论与 token 用量")
     p_stats.add_argument("--json", action="store_true", help="输出 JSON")

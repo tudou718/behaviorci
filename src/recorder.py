@@ -40,6 +40,7 @@ class Recorder:
         self,
         task_name: str,
         task_input: dict | None = None,
+        task_requirements: list[str] | None = None,
         agent: str = "demo_agent",
         tapes_dir: Path | str | None = None,
         variant: str | None = None,
@@ -48,6 +49,7 @@ class Recorder:
     ) -> None:
         self.task_name = task_name
         self.task_input = task_input or {}
+        self.task_requirements = task_requirements or []
         self.agent = agent
         self.tapes_dir = Path(tapes_dir) if tapes_dir else ROOT / "tapes"
         # 变体标记：同一个任务跑第几次、或者改 Prompt 的前后版本（v1/v2/baseline）
@@ -114,7 +116,11 @@ class Recorder:
 
         tape = {
             "tape_version": TAPE_VERSION,
-            "task": {"name": self.task_name, "input": self.task_input},
+            "task": {
+                "name": self.task_name,
+                "input": self.task_input,
+                "requirements": self.task_requirements,
+            },
             "meta": {
                 "run_id": run_id,
                 "agent": self.agent,
