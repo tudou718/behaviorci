@@ -25,10 +25,12 @@ from pathlib import Path
 try:
     from . import provenance
     from .pages import render_html
+    from .recorder import safe_name
     from .tape import final_output_text
 except ImportError:
     import provenance
     from pages import render_html
+    from recorder import safe_name
     from tape import final_output_text
 
 ROOT = Path(__file__).resolve().parent.parent

@@ -23,6 +23,7 @@ import judge  # noqa: E402
 import pages  # noqa: E402
 import provenance  # noqa: E402
 import recorder  # noqa: E402
+import report  # noqa: E402
 import tape  # noqa: E402
 
 
@@ -226,6 +227,42 @@ class TestPathSafety(unittest.TestCase):
         second = demo_agent.mock_search(["关键词"])[0]["url"]
         self.assertEqual(first, second)
         self.assertNotIn(" ", first)
+
+
+class TestReportSave(unittest.TestCase):
+    def test_save_writes_three_files(self):
+        import tempfile
+
+        tape = {
+            "meta": {
+                "run_id": "t-1",
+                "variant": "v",
+                "model": "m",
+                "started_at": "2026-01-01T00:00:00+08:00",
+                "duration_ms": 1,
+                "step_count": 0,
+            },
+            "task": {"name": "测试任务/../evil", "input": {}, "requirements": []},
+            "steps": [],
+            "output": {"summary": "内容"},
+        }
+        report_dict = {
+            "task": "测试任务/../evil",
+            "checks": [],
+            "summary": {"total": 0, "consistent": 0, "different": 0},
+            "content": {
+                "changed_steps": [],
+                "root_steps": [],
+                "final_output_changed": False,
+            },
+            "provenance": {"available": False, "changed": False, "items": [], "reason": "x"},
+            "verdict": {"skipped": True, "reason": "无差异", "verdict": None, "model": None},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            md, js, html = report.save(report_dict, tape, tape, out_dir=tmp)
+            for path in (md, js, html):
+                self.assertTrue(path.exists(), path)
+                self.assertEqual(path.parent.resolve(), Path(tmp).resolve())
 
 
 class TestRecorderCollision(unittest.TestCase):
