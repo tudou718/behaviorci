@@ -71,6 +71,8 @@ def replay(
     runs: int = 2,
     labels: list[str] | None = None,
     repeat: int = 1,
+    replay_from: str | None = None,
+    replay_match: str = "exact",
 ) -> list[dict]:
     """把同一个任务跑 runs 个变体、每个变体 repeat 次，返回每次的结果摘要。"""
     topic = task["input"]["topic"]
@@ -92,6 +94,8 @@ def replay(
                     variant=label,
                     cache_nonce=f"{rep}-{time.time_ns()}",
                     requirements=task.get("requirements"),
+                    replay_from=replay_from,
+                    replay_match=replay_match,
                 )
             except Exception as exc:
                 # 一次跑崩不该毁掉整批；记下来，继续跑下一次

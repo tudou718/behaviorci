@@ -34,11 +34,12 @@ from pathlib import Path
 
 # 支持两种运行方式：python src/demo_agent.py  或  python -m src.demo_agent
 try:
-    from . import provenance
+    from . import provenance, toolreplay
     from .llm import ask, parse_json
     from .recorder import Recorder
 except ImportError:
     import provenance
+    import toolreplay
     from llm import ask, parse_json
     from recorder import Recorder
 
@@ -177,6 +178,8 @@ def run(
     variant: str | None = None,
     cache_nonce: str | None = None,
     requirements: list[str] | None = None,
+    replay_from: str | Path | None = None,
+    replay_match: str = "exact",
 ) -> dict:
     """跑一次完整任务，返回这次运行的完整结果。
 
@@ -193,6 +196,13 @@ def run(
     # 组内方差会假性地变成 0。
     nonce = cache_nonce or datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     run_tag = f"{variant or 'run'}-{nonce}"
+
+    # 工具回放：把基线磁带里的工具输出当作录像，重放时不再真的调工具
+    replayer = (
+        toolreplay.StepReplay.from_path(replay_from, match=replay_match)
+        if replay_from
+        else None
+    )
 
     recorder = (
         Recorder(
@@ -212,6 +222,7 @@ def run(
                 params={
                     "temperature_keywords": 0.2,
                     "temperature_summary": 0.7,
+                    "tool_replay": replayer.source if replayer else None,
                 },
                 tools=["mock_search"],
             ),
@@ -233,7 +244,14 @@ def run(
         say(f"      → {keywords}")
 
         say("[2/3] 模拟搜索")
-        results = mock_search(keywords)
+        results = None
+        if replayer:
+            replayed = replayer.replay("search", {"keywords": keywords})
+            if replayed is not None:
+                results = replayed.get("results", [])
+                say("      → 使用基线磁带里的工具输出（确定性回放）")
+        if results is None:
+            results = mock_search(keywords)
         if recorder:
             recorder.log(
                 "search",

@@ -1,0 +1,119 @@
+{
+  "tape_version": 1,
+  "task": {
+    "name": "daily-brief",
+    "input": {
+      "topic": "AI Agent 最新进展"
+    },
+    "requirements": [
+      "输出 180-220 字的中文摘要",
+      "覆盖三个角度：最新进展、工程实践、争议或局限",
+      "只使用检索资料中的信息，不得编造",
+      "结尾用一句话指出这个方向目前最没解决的问题"
+    ]
+  },
+  "meta": {
+    "run_id": "daily-brief-v2-20261028-163428",
+    "agent": "demo_agent",
+    "model": "deepseek-v4.1-flash-1017",
+    "variant": "fixture-too-short",
+    "status": "ok",
+    "error": null,
+    "started_at": "2026-10-28T16:34:28+08:00",
+    "finished_at": "2026-10-28T16:34:35+08:00",
+    "duration_ms": 6302,
+    "step_count": 3,
+    "fixture": true
+  },
+  "steps": [
+    {
+      "index": 1,
+      "name": "generate_keywords",
+      "label": "规划关键词",
+      "ended_at": "2026-10-28T16:34:30+08:00",
+      "duration_ms": 1762,
+      "input": {
+        "topic": "AI Agent 最新进展"
+      },
+      "output": {
+        "keywords": [
+          "AI Agent 最新进展",
+          "AI Agent 工程落地",
+          "AI Agent 局限争议"
+        ]
+      }
+    },
+    {
+      "index": 2,
+      "name": "search",
+      "label": "模拟搜索",
+      "ended_at": "2026-10-28T16:34:30+08:00",
+      "duration_ms": 0,
+      "input": {
+        "keywords": [
+          "AI Agent 最新进展",
+          "AI Agent 工程落地",
+          "AI Agent 局限争议"
+        ]
+      },
+      "output": {
+        "results": [
+          {
+            "keyword": "AI Agent 最新进展",
+            "title": "AI Agent 最新进展：本年度进展综述",
+            "snippet": "多家机构在「AI Agent 最新进展」方向上发布新工作，关注点集中在工具调用稳定性、长任务规划与推理成本，行业仍缺一套统一的评测口径。",
+            "url": "mock://search/70228244"
+          },
+          {
+            "keyword": "AI Agent 工程落地",
+            "title": "「AI Agent 工程落地」工程落地盘点",
+            "snippet": "一线团队反馈，「AI Agent 工程落地」落地的难点不在模型能力，而在行为可复现性：同一个任务跑两次，中间步骤和最终结论都可能不一样。",
+            "url": "mock://search/95615764"
+          },
+          {
+            "keyword": "AI Agent 局限争议",
+            "title": "关于「AI Agent 局限争议」的三个常见误解",
+            "snippet": "讨论「AI Agent 局限争议」时，常把「演示效果好」等同于「生产可用」。两者之间差的是回归测试、可观测性与失败时的兜底策略。",
+            "url": "mock://search/75732002"
+          }
+        ]
+      }
+    },
+    {
+      "index": 3,
+      "name": "write_summary",
+      "label": "撰写摘要",
+      "ended_at": "2026-10-28T16:34:35+08:00",
+      "duration_ms": 4540,
+      "input": {
+        "topic": "AI Agent 最新进展",
+        "results": [
+          {
+            "keyword": "AI Agent 最新进展",
+            "title": "AI Agent 最新进展：本年度进展综述",
+            "snippet": "多家机构在「AI Agent 最新进展」方向上发布新工作，关注点集中在工具调用稳定性、长任务规划与推理成本，行业仍缺一套统一的评测口径。",
+            "url": "mock://search/70228244"
+          },
+          {
+            "keyword": "AI Agent 工程落地",
+            "title": "「AI Agent 工程落地」工程落地盘点",
+            "snippet": "一线团队反馈，「AI Agent 工程落地」落地的难点不在模型能力，而在行为可复现性：同一个任务跑两次，中间步骤和最终结论都可能不一样。",
+            "url": "mock://search/95615764"
+          },
+          {
+            "keyword": "AI Agent 局限争议",
+            "title": "关于「AI Agent 局限争议」的三个常见误解",
+            "snippet": "讨论「AI Agent 局限争议」时，常把「演示效果好」等同于「生产可用」。两者之间差的是回归测试、可观测性与失败时的兜底策略。",
+            "url": "mock://search/75732002"
+          }
+        ]
+      },
+      "output": {
+        "summary": "AI Agent 最近有些进展，但问题也不少。"
+      }
+    }
+  ],
+  "output": {
+    "summary": "AI Agent 最近有些进展，但问题也不少。"
+  }
+}

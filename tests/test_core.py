@@ -25,6 +25,7 @@ import provenance  # noqa: E402
 import recorder  # noqa: E402
 import report  # noqa: E402
 import tape  # noqa: E402
+import toolreplay  # noqa: E402
 
 
 class TestVerdictNormalization(unittest.TestCase):
@@ -227,6 +228,38 @@ class TestPathSafety(unittest.TestCase):
         second = demo_agent.mock_search(["关键词"])[0]["url"]
         self.assertEqual(first, second)
         self.assertNotIn(" ", first)
+
+
+class TestToolReplay(unittest.TestCase):
+    def _tape(self):
+        return {
+            "meta": {"run_id": "src-1"},
+            "steps": [
+                {"name": "search", "input": {"keywords": ["a"]}, "output": {"results": [1]}},
+                {"name": "search", "input": {"keywords": ["b"]}, "output": {"results": [2]}},
+            ],
+        }
+
+    def test_exact_match_and_single_use(self):
+        replay = toolreplay.StepReplay(self._tape())
+        self.assertEqual(replay.replay("search", {"keywords": ["a"]}), {"results": [1]})
+        self.assertIsNone(replay.replay("search", {"keywords": ["a"]}))
+        self.assertEqual(replay.stats(), {"hits": 1, "misses": 1})
+
+    def test_name_match_allows_different_input(self):
+        replay = toolreplay.StepReplay(self._tape(), match="name")
+        self.assertEqual(replay.replay("search", {"keywords": ["z"]}), {"results": [1]})
+        self.assertEqual(replay.replay("search", {"keywords": ["y"]}), {"results": [2]})
+
+    def test_result_is_deep_copied(self):
+        replay = toolreplay.StepReplay(self._tape())
+        out = replay.replay("search", {"keywords": ["a"]})
+        out["results"].append(99)
+        self.assertEqual(replay.tape["steps"][0]["output"], {"results": [1]})
+
+    def test_invalid_match_mode(self):
+        with self.assertRaises(ValueError):
+            toolreplay.StepReplay({}, match="fuzzy")
 
 
 class TestReportSave(unittest.TestCase):

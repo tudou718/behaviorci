@@ -51,6 +51,7 @@ def load_cases(path: Path = DEFAULT_CASES) -> tuple[list[dict], list[str]]:
         cases.append(
             {
                 **case,
+                "split": case.get("split", "dev"),
                 "_baseline_path": baseline,
                 "_candidate_path": candidate,
             }
@@ -87,6 +88,7 @@ def run(cases: list[dict], runs: int = 3, progress=print) -> list[dict]:
                 "agreement": agreement,
                 "reason": reason,
                 "note": case.get("note", ""),
+                "split": case.get("split", "dev"),
                 "ok": ok,
                 "model": model,
                 "correct": ok and predicted == case["label"],
@@ -122,10 +124,27 @@ def cohen_kappa(results: list[dict], labels: list[str] = LABELS) -> float | None
     return (po - pe) / (1 - pe)
 
 
+def _split_metrics(results: list[dict]) -> dict:
+    valid = [r for r in results if r["ok"]]
+    correct = sum(1 for r in valid if r["correct"])
+    return {
+        "total": len(results),
+        "valid": len(valid),
+        "correct": correct,
+        "accuracy": round(correct / len(valid), 3) if valid else None,
+        "kappa": round(cohen_kappa(results), 3) if valid else None,
+    }
+
+
 def summarize(results: list[dict], runs: int) -> dict:
     valid = [r for r in results if r["ok"]]
     correct = sum(1 for r in valid if r["correct"])
     matrix = _confusion(results)
+    splits = sorted({r.get("split", "dev") for r in results})
+    by_split = {
+        name: _split_metrics([r for r in results if r.get("split", "dev") == name])
+        for name in splits
+    }
     return {
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "runs_per_case": runs,
@@ -137,6 +156,7 @@ def summarize(results: list[dict], runs: int) -> dict:
         "accuracy": round(correct / len(valid), 3) if valid else None,
         "kappa": round(cohen_kappa(results), 3) if valid else None,
         "confusion": {h: dict(row) for h, row in matrix.items()},
+        "by_split": by_split,
         "mismatches": [r for r in valid if not r["correct"]],
         "failures": [r for r in results if not r["ok"]],
         "results": results,
@@ -172,6 +192,18 @@ def render(summary: dict) -> str:
             f"（{summary['correct']}/{valid}）"
             f"    Cohen's kappa：{summary['kappa']:.2f} —— {_interpret(summary['kappa'])}"
         )
+    if len(summary.get("by_split", {})) > 1:
+        lines.append("")
+        lines.append("分片结果（dev = 调参时看过，test = 留出）")
+        for name, metrics in summary["by_split"].items():
+            kappa = metrics["kappa"]
+            kappa_text = f"{kappa:.2f}" if kappa is not None else "—"
+            acc = metrics["accuracy"]
+            acc_text = f"{acc:.2f}" if acc is not None else "—"
+            lines.append(
+                f"  {name:<6}{metrics['valid']:>3} 对    一致率 {acc_text}    kappa {kappa_text}"
+            )
+
     lines.append("")
     lines.append(f"混淆矩阵（行 = 人工标注，列 = 裁判结论）")
     header = "        " + "".join(f"{label:<8}" for label in LABELS)

@@ -1,9 +1,14 @@
 {
-  "description": "裁判校准集：人工标注的磁带对。label 为人工判断（等价/变好/漂移），基于任务要求逐条核对内容，不参考裁判结论。",
-  "labels": ["等价", "变好", "漂移"],
+  "description": "裁判校准集：32 对磁带。label 由构造方式或运行配置决定（见 note），不参考裁判结论。split=dev 是调参时看过的样本；split=test 是留出样本，用于检查是否过拟合。",
+  "labels": [
+    "等价",
+    "变好",
+    "漂移"
+  ],
   "cases": [
     {
       "id": "equiv-v1-v2",
+      "split": "dev",
       "baseline": "tapes/daily-brief-v1-20261028-163416.json",
       "candidate": "tapes/daily-brief-v2-20261028-163428.json",
       "label": "等价",
@@ -11,6 +16,7 @@
     },
     {
       "id": "equiv-deepsearch",
+      "split": "dev",
       "baseline": "tapes/deepsearch-baseline-20261102-143358.json",
       "candidate": "tapes/deepsearch-v2-20261102-143405.json",
       "label": "等价",
@@ -18,6 +24,7 @@
     },
     {
       "id": "equiv-control",
+      "split": "dev",
       "baseline": "tapes/experiments/daily-brief-base-20261105-114714.json",
       "candidate": "tapes/experiments/daily-brief-base2-20261105-114835.json",
       "label": "等价",
@@ -25,6 +32,7 @@
     },
     {
       "id": "equiv-provenance",
+      "split": "dev",
       "baseline": "tapes/daily-brief-v2-20261028-163428.json",
       "candidate": "tapes/daily-brief-prov-baseline-20261104-114208.json",
       "label": "等价",
@@ -32,52 +40,227 @@
     },
     {
       "id": "equiv-ignore-materials",
+      "split": "dev",
       "baseline": "tapes/daily-brief-v2-20261028-163428.json",
       "candidate": "tapes/examples/daily-brief-degraded-v2-20261102-161038.json",
       "label": "等价",
-      "note": "Prompt 要求无视资料，但候选实际仍忠实于资料，覆盖同样的要点——改了 Prompt 不等于改了行为"
+      "note": "Prompt 要求无视资料，但候选实际仍忠实于资料——改了 Prompt 不等于改了行为"
     },
     {
       "id": "drift-offtopic",
+      "split": "dev",
       "baseline": "tapes/daily-brief-v2-20261028-163428.json",
       "candidate": "calibration/tapes/fixture-offtopic.json",
       "label": "漂移",
-      "note": "交付物完全换成咖啡行情，任务目标丢失"
+      "note": "构造：交付物换成完全无关的咖啡行情"
     },
     {
       "id": "drift-deepsearch-offtopic",
+      "split": "dev",
       "baseline": "tapes/deepsearch-baseline-20261102-143358.json",
       "candidate": "calibration/tapes/fixture-deepsearch-offtopic.json",
       "label": "漂移",
-      "note": "智研搜交付物换成咖啡周报，偏离研究任务"
+      "note": "构造：智研搜交付物换成咖啡周报"
     },
     {
       "id": "drift-hallucination",
+      "split": "dev",
       "baseline": "tapes/daily-brief-v2-20261028-163428.json",
       "candidate": "calibration/tapes/fixture-hallucination.json",
       "label": "漂移",
-      "note": "候选凭空加入资料外的数据（推理成本降低 60%），违反「不得编造」"
+      "note": "构造：追加资料外的数据（推理成本降低 60%）"
     },
     {
       "id": "drift-no-tool",
+      "split": "dev",
       "baseline": "tapes/deepsearch-baseline-20261102-143358.json",
       "candidate": "calibration/tapes/fixture-deepsearch-no-tool.json",
       "label": "漂移",
-      "note": "候选跳过了文件生成工具，只给口头回答，未交付要求的 Markdown"
+      "note": "构造：跳过文件生成工具，只口头回答"
     },
     {
       "id": "better-truncated",
+      "split": "dev",
       "baseline": "calibration/tapes/fixture-truncated.json",
       "candidate": "tapes/daily-brief-v2-20261028-163428.json",
       "label": "变好",
-      "note": "基线缺任务要求的结尾结论句，候选补齐"
+      "note": "构造：基线缺结尾结论，候选补齐"
     },
     {
       "id": "better-missing-section",
+      "split": "dev",
       "baseline": "calibration/tapes/fixture-missing-section.json",
       "candidate": "tapes/daily-brief-v2-20261028-163428.json",
       "label": "变好",
-      "note": "基线缺少「工程实践」角度，候选三个角度齐全"
+      "note": "构造：基线缺「工程实践」角度，候选齐全"
+    },
+    {
+      "id": "t-equiv-base12",
+      "split": "test",
+      "baseline": "tapes/experiments/daily-brief-base-20261105-114714.json",
+      "candidate": "tapes/experiments/daily-brief-base-20261105-114722.json",
+      "label": "等价",
+      "note": "同一 Prompt 的两次运行"
+    },
+    {
+      "id": "t-equiv-base-cross",
+      "split": "test",
+      "baseline": "tapes/experiments/daily-brief-base-20261105-114714.json",
+      "candidate": "tapes/experiments/daily-brief-base2-20261105-114841.json",
+      "label": "等价",
+      "note": "同一 Prompt 的两组运行交叉配对"
+    },
+    {
+      "id": "t-equiv-base2-13",
+      "split": "test",
+      "baseline": "tapes/experiments/daily-brief-base2-20261105-114835.json",
+      "candidate": "tapes/experiments/daily-brief-base2-20261105-114900.json",
+      "label": "等价",
+      "note": "同一 Prompt 的两组运行"
+    },
+    {
+      "id": "t-equiv-v1-prov",
+      "split": "test",
+      "baseline": "tapes/daily-brief-v1-20261028-163416.json",
+      "candidate": "tapes/daily-brief-prov-baseline-20261104-114208.json",
+      "label": "等价",
+      "note": "同一配置，不同时间运行"
+    },
+    {
+      "id": "t-equiv-ds-ui1",
+      "split": "test",
+      "baseline": "tapes/deepsearch-baseline-20261102-143358.json",
+      "candidate": "tapes/deepsearch-20261103-152608.json",
+      "label": "等价",
+      "note": "智研搜：脚本录制与网页触发的运行"
+    },
+    {
+      "id": "t-drift-ds-failed",
+      "split": "test",
+      "baseline": "tapes/deepsearch-20261103-152608.json",
+      "candidate": "tapes/deepsearch-20261103-152859.json",
+      "label": "漂移",
+      "note": "候选运行失败（status=error、1 步、未交付），相对成功基线应判漂移"
+    },
+    {
+      "id": "t-equiv-ds-prov",
+      "split": "test",
+      "baseline": "tapes/deepsearch-v2-20261102-143405.json",
+      "candidate": "tapes/deepsearch-prov-test-20261104-114342.json",
+      "label": "等价",
+      "note": "智研搜：同一配置，不同时间运行"
+    },
+    {
+      "id": "t-equiv-v2-base",
+      "split": "test",
+      "baseline": "tapes/daily-brief-v2-20261028-163428.json",
+      "candidate": "tapes/experiments/daily-brief-base-20261105-114729.json",
+      "label": "等价",
+      "note": "同一 Prompt，隔日运行"
+    },
+    {
+      "id": "t-drift-too-short",
+      "split": "test",
+      "baseline": "tapes/daily-brief-v2-20261028-163428.json",
+      "candidate": "calibration/tapes/fixture-too-short.json",
+      "label": "漂移",
+      "note": "构造：远低于 180-220 字要求"
+    },
+    {
+      "id": "t-drift-english",
+      "split": "test",
+      "baseline": "tapes/daily-brief-v2-20261028-163428.json",
+      "candidate": "calibration/tapes/fixture-english.json",
+      "label": "漂移",
+      "note": "构造：中文任务用英文交付"
+    },
+    {
+      "id": "t-drift-empty",
+      "split": "test",
+      "baseline": "tapes/daily-brief-v2-20261028-163428.json",
+      "candidate": "calibration/tapes/fixture-empty.json",
+      "label": "漂移",
+      "note": "构造：完全不交付"
+    },
+    {
+      "id": "t-drift-missing-section",
+      "split": "test",
+      "baseline": "tapes/daily-brief-v2-20261028-163428.json",
+      "candidate": "calibration/tapes/fixture-missing-section.json",
+      "label": "漂移",
+      "note": "构造：缺少任务要求的「工程实践」角度"
+    },
+    {
+      "id": "t-drift-truncated",
+      "split": "test",
+      "baseline": "tapes/daily-brief-v2-20261028-163428.json",
+      "candidate": "calibration/tapes/fixture-truncated.json",
+      "label": "漂移",
+      "note": "构造：缺少任务要求的结尾结论"
+    },
+    {
+      "id": "t-drift-english-v1",
+      "split": "test",
+      "baseline": "tapes/daily-brief-v1-20261028-163416.json",
+      "candidate": "calibration/tapes/fixture-english.json",
+      "label": "漂移",
+      "note": "构造：换一个基线，仍是语言不符"
+    },
+    {
+      "id": "t-drift-short-base",
+      "split": "test",
+      "baseline": "tapes/experiments/daily-brief-base-20261105-114714.json",
+      "candidate": "calibration/tapes/fixture-too-short.json",
+      "label": "漂移",
+      "note": "构造：换一个基线，仍是字数严重不足"
+    },
+    {
+      "id": "t-better-too-short",
+      "split": "test",
+      "baseline": "calibration/tapes/fixture-too-short.json",
+      "candidate": "tapes/daily-brief-v2-20261028-163428.json",
+      "label": "变好",
+      "note": "构造：基线字数严重不足，候选满足要求"
+    },
+    {
+      "id": "t-better-english",
+      "split": "test",
+      "baseline": "calibration/tapes/fixture-english.json",
+      "candidate": "tapes/daily-brief-v2-20261028-163428.json",
+      "label": "变好",
+      "note": "构造：基线语言不符，候选为中文"
+    },
+    {
+      "id": "t-better-empty",
+      "split": "test",
+      "baseline": "calibration/tapes/fixture-empty.json",
+      "candidate": "tapes/daily-brief-v2-20261028-163428.json",
+      "label": "变好",
+      "note": "构造：基线未交付，候选有完整交付"
+    },
+    {
+      "id": "t-better-hallucination",
+      "split": "test",
+      "baseline": "calibration/tapes/fixture-hallucination.json",
+      "candidate": "tapes/daily-brief-v2-20261028-163428.json",
+      "label": "变好",
+      "note": "构造：基线含编造事实，候选不含"
+    },
+    {
+      "id": "t-better-truncated-v1",
+      "split": "test",
+      "baseline": "calibration/tapes/fixture-truncated.json",
+      "candidate": "tapes/daily-brief-v1-20261028-163416.json",
+      "label": "变好",
+      "note": "构造：换一个候选，仍补齐了结论"
+    },
+    {
+      "id": "t-better-no-tool",
+      "split": "test",
+      "baseline": "calibration/tapes/fixture-deepsearch-no-tool.json",
+      "candidate": "tapes/deepsearch-baseline-20261102-143358.json",
+      "label": "变好",
+      "note": "构造：基线跳过工具未交付，候选完成交付"
     }
   ]
 }

@@ -57,6 +57,8 @@ def cmd_record(args: argparse.Namespace) -> int:
         record=True,
         variant=args.label,
         requirements=task.get("requirements"),
+        replay_from=args.replay_from,
+        replay_match=args.replay_match,
     )
 
     tape = Path(result["tape"])
@@ -74,7 +76,12 @@ def cmd_replay(args: argparse.Namespace) -> int:
     labels = [s.strip() for s in args.labels.split(",")] if args.labels else None
 
     records = replay.replay(
-        task, runs=args.runs, labels=labels, repeat=args.repeat
+        task,
+        runs=args.runs,
+        labels=labels,
+        repeat=args.repeat,
+        replay_from=args.replay_from,
+        replay_match=args.replay_match,
     )
     replay.print_overview(records)
 
@@ -133,6 +140,8 @@ def cmd_compare(args: argparse.Namespace) -> int:
 
 def cmd_calibrate(args: argparse.Namespace) -> int:
     cases, missing = calibrate.load_cases(Path(args.cases))
+    if args.split != "all":
+        cases = [case for case in cases if case.get("split", "dev") == args.split]
     for item in missing:
         print(f"⚠ 跳过：{item}", file=sys.stderr)
     if not cases:
@@ -206,6 +215,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_record = sub.add_parser("record", help="录一份磁带（跑一次任务）")
     p_record.add_argument("--task", default=str(DEFAULT_TASK), help="任务定义 JSON")
     p_record.add_argument("--label", help="变体名，写进磁带（如 baseline）")
+    p_record.add_argument(
+        "--replay-from",
+        help="从这份磁带回放工具输出（模型是唯一变量）",
+    )
+    p_record.add_argument(
+        "--replay-match",
+        choices=["exact", "name"],
+        default="exact",
+        help="回放匹配方式：exact 要求输入相同，name 只要求步骤名相同",
+    )
     p_record.set_defaults(func=cmd_record)
 
     p_replay = sub.add_parser("replay", help="同一任务跑多次，生成多份磁带")
@@ -213,6 +232,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_replay.add_argument("--runs", type=int, default=2, help="运行次数（默认 2）")
     p_replay.add_argument(
         "--labels", help="逗号分隔的变体名，如 baseline,new-prompt"
+    )
+    p_replay.add_argument(
+        "--replay-from",
+        help="从这份磁带回放工具输出（模型是唯一变量）",
+    )
+    p_replay.add_argument(
+        "--replay-match",
+        choices=["exact", "name"],
+        default="exact",
+        help="回放匹配方式：exact 要求输入相同，name 只要求步骤名相同",
     )
     p_replay.add_argument(
         "--repeat",
@@ -253,6 +282,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_cal.add_argument("--runs", type=int, default=3, help="每对裁判跑几次（默认 3）")
     p_cal.add_argument("--json", action="store_true", help="输出 JSON")
     p_cal.add_argument("--no-save", action="store_true", help="不写 reports/")
+    p_cal.add_argument(
+        "--split",
+        choices=["all", "dev", "test"],
+        default="all",
+        help="只跑某个分片（dev 是调参样本，test 是留出样本）",
+    )
     p_cal.set_defaults(func=cmd_calibrate)
 
     p_stats = sub.add_parser("stats", help="统计磁带、对比结论与 token 用量")

@@ -14,7 +14,9 @@
 | 对比两份磁带并出报告 | `python main.py compare A.json B.json --open` | 会（裁判 3 次） |
 | 只看结构、不花钱 | `python main.py compare A.json B.json --no-judge` | 不会 |
 | 判断漂移还是抖动 | `python main.py experiment --task daily-brief --baseline a --candidate b` | 不会 |
-| 校准裁判 | `python main.py calibrate` | 会（11 对 × 3 票） |
+| 校准裁判 | `python main.py calibrate` | 会（32 对 × 3 票） |
+| 只跑留出集校准 | `python main.py calibrate --split test` | 会 |
+| 工具输出确定性回放 | `python main.py record --replay-from tapes/x.json --replay-match name` | 会（仅模型） |
 | 看总量与花费 | `python main.py stats` | 不会 |
 | 生成接入指南网页 | `python src/guide.py` | 不会 |
 | 跑单元测试 | `python -m unittest discover -s tests -v` | 不会 |
@@ -79,13 +81,27 @@ python main.py experiment --task daily-brief --baseline base --candidate new
 ### C. 怀疑裁判判得不准
 
 ```bash
-python main.py calibrate            # 11 对人工标注，3 票多数
+python main.py calibrate                 # 全部 32 对
+python main.py calibrate --split test    # 只看留出集（评估是否过拟合）
 ```
 
 看一致率、Cohen's kappa、混淆矩阵。标注在 `calibration/cases.json`，
 **标注必须在跑裁判前定好**，否则校准没有意义。
 
 ---
+
+### D. 只想让模型成为唯一变量
+
+工具（搜索 / 数据库）本身也会变。用基线磁带里的工具输出回放：
+
+```bash
+python main.py record --label after --replay-from tapes/<基线>.json --replay-match name
+```
+
+- `--replay-match exact`（默认）：输入必须完全一致，最严格
+- `--replay-match name`：只要求步骤名一致，适合模型重新生成了计划的场景
+
+回放命中的步骤会被标记在运行配置指纹里（`params.tool_replay`），报告可追溯。
 
 ## 3. 产物都在哪
 
